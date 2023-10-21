@@ -1,17 +1,16 @@
 import { Sequelize } from "sequelize";
 
-
 const sequelize = new Sequelize('railway', 'root', 'ykmXliGSDNKnh3oSlpTH', {
-    host: 'https://containers-us-west-202.railway.app',
+    host: 'containers-us-west-202.railway.app',
     dialect: 'mysql' 
 });
 
-try{
-    await sequelize.authenticate()
-    console.log('Connected to database')
-}
-catch(er){
-    console.log('Error while connecting to database',er)
+// Assuming this code is inside an async function or using .then() to handle promises
+try {
+    await sequelize.authenticate();
+    console.log('Connected to database');
+} catch (error) {
+    console.error('Error while connecting to database', error);
 }
 
 export default sequelize;
