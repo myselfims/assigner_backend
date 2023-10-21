@@ -13,10 +13,10 @@ export const initializeSocket = (httpServer) => {
   io.on("connection", (socket) => {
     socket.on("join:comment", (data) => {
       socket.join(data);
-      console.log(data);
+  
     });
     socket.on("comment", async (data) => {
-      console.log("user", data);
+
       const {error} = schema.validate(data)
       if (error) return null ;
       let comment = await Comment.create({

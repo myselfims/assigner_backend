@@ -10,7 +10,7 @@ let schema = Joi.object({
 });
 
 export const getAllTasks = asyncMiddleware(async (req, res) => {
-  console.log(process.env.jwtPrivateKey);
+
   let tasks;
   if (req.user.isAdmin) {
     tasks = await Task.findAll();

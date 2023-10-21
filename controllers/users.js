@@ -27,8 +27,7 @@ export const updateUser = asyncMiddleware( async(req ,res) => {
     let user = await User.findByPk(req.params.id)
 
     for (let key of Object.keys(req.body)){
-        console.log(req.body[key])
-        console.log(user['avatar']==undefined)
+
         if (user[key] || key=='avatar'){
             if(key=='password'){
                 let hashedPassword = await bcrypt.hash(req.body[key],10)
