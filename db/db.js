@@ -2,7 +2,7 @@ import { Sequelize } from "sequelize";
 
 
 const sequelize = new Sequelize('railway', 'root', 'ykmXliGSDNKnh3oSlpTH', {
-    host: 'containers-us-west-202.railway.app',
+    host: 'https://containers-us-west-202.railway.app',
     dialect: 'mysql' 
 });
 
