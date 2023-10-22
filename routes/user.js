@@ -10,7 +10,8 @@ import {
 
 const router = express.Router();
 
-router.get("/", auth(true), getAllUsers).post(createUser);
+router.get("/", auth(true), getAllUsers)
+router.post('/',createUser);
 
 router.get("/self", auth(), getSelf);
 
