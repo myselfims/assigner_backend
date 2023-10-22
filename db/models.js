@@ -112,26 +112,19 @@ export const Comment = sequelize.define('Comment',{
     
 })
 
-// async function Migrate(){
-//     try{
-//         User.sync()
-//         Task.sync()
-//         Comment.sync()
-//     }
-//     catch(er){
-//         console.log('Error while migrating',er)
-//     }
-// }
+async function Migrate(){
+    try{
+        User.sync()
+        Task.sync()
+        Comment.sync()
+    }
+    catch(er){
+        console.log('Error while migrating',er)
+    }
+}
 
-// Migrate()
+Migrate()
 
-const migrate = async ( Sequelize) => {
-    await queryInterface.addColumn('Users', 'avatar', {
-      type: DataTypes.STRING,
-      allowNull: true,
-      defaultValue: null,
-    });
-  }
 
 
 

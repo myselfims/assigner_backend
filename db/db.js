@@ -1,5 +1,7 @@
 import { Sequelize } from "sequelize";
 
+let database = process.env.DATABASE
+
 const sequelize = new Sequelize('railway', 'root', 'ykmXliGSDNKnh3oSlpTH', {
     host: 'containers-us-west-202.railway.app',
     dialect: 'mysql',
