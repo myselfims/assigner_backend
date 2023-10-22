@@ -3,6 +3,7 @@ import { Sequelize } from "sequelize";
 const sequelize = new Sequelize('railway', 'root', 'ykmXliGSDNKnh3oSlpTH', {
     host: 'containers-us-west-202.railway.app',
     dialect: 'mysql',
+    port : 5594,
     pool: {
         max: 15,
         min: 5,
