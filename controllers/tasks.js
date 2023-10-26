@@ -1,6 +1,7 @@
 import { Task, User } from "../db/models.js";
 import { asyncMiddleware } from "../middlewares/async.js";
 import Joi from "joi";
+import { transporter } from "../smtp.js";
 
 let schema = Joi.object({
   title: Joi.string().min(2).required(),
@@ -32,6 +33,26 @@ export const createTask = asyncMiddleware(async (req, res) => {
     assignedById: req.user.id,
     assignedToId: req.body.assignedToId,
   });
+
+  let creater = await User.findByPk(req.user.id)
+  let user = await User.findByPk(req.user.assignedById)
+
+  const mailData = {
+    from: 'shaikhimran7585@gmail.com',  // sender address
+      to: user.email,   // list of receivers
+      subject: `${creater.name} is assigner a task to you`,
+      text: 'Check here https://assinger.riseimstechnologies.com/',
+      html: '<b>Hey there! </b><br> This is our first message sent with Nodemailer<br/>',
+    };
+
+transporter.sendMail(mailData,(error, info)=>{
+    if (error){
+      console.log(error)
+    }else{
+      console.log(info)
+    }
+  })
+
 
   res.send({ task: task });
 });

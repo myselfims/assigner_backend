@@ -10,12 +10,12 @@ import {
 
 const router = express.Router();
 
-router.get("/", auth(true), getAllUsers)
-router.post('/',createUser);
+router.get("/", auth(true), getAllUsers);
+router.post("/", createUser);
 
 router.get("/self", auth(), getSelf);
 
-router.delete("/:id", auth(true), deleteUser)
-router.patch("/:id", auth(true),updateUser);
+router.delete("/:id", auth(true), deleteUser);
+router.patch("/:id", auth(true), updateUser);
 
 export default router;
