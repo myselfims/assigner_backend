@@ -56,7 +56,7 @@ transporter.sendMail(mailData,(error, info)=>{
   })
 
 
-  res.send({ task: task });
+  res.send(task);
 });
 
 export const getTask = asyncMiddleware(async (req, res) => {
