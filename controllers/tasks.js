@@ -35,14 +35,16 @@ export const createTask = asyncMiddleware(async (req, res) => {
   });
 
   let creater = await User.findByPk(req.user.id)
-  let user = await User.findByPk(req.user.assignedById)
+  let user = await User.findByPk(req.body.assignedToId)
+
+  console.log('this is email',req.user.assignedToId)
 
   const mailData = {
     from: 'shaikhimran7585@gmail.com',  // sender address
       to: user.email,   // list of receivers
-      subject: `${creater.name} is assigner a task to you`,
-      text: 'Check here https://assinger.riseimstechnologies.com/',
-      html: '<b>Hey there! </b><br> This is our first message sent with Nodemailer<br/>',
+      subject: `${creater.name} is assigned you a new task`,
+      text: '',
+      html: `<b>Hey there! </b><br> This is our first message sent with Nodemailer<br/><hr/>Check here https://assinger.riseimstechnologies.com/. Title : ${task.title}`,
     };
 
 transporter.sendMail(mailData,(error, info)=>{
