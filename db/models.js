@@ -117,9 +117,11 @@ export const Comment = sequelize.define('Comment',{
     
 })
 
+
+
 async function Migrate(){
     try{
-        User.sync()
+        User.sync({alter:true})
         Task.sync()
         Comment.sync()
     }
