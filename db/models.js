@@ -37,6 +37,11 @@ export const User = sequelize.define('User', {
         type : DataTypes.BOOLEAN,
         allowNull : false,
         defaultValue : false
+    },
+    isVerfied : {
+        type : DataTypes.BOOLEAN,
+        allowNull : false,
+        defaultValue : true
     }
 
   }, {

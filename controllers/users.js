@@ -3,6 +3,7 @@ import { User } from "../db/models.js";
 import Joi from "joi";
 import bcrypt from "bcrypt";
 import JWT from "jsonwebtoken";
+import { transporter } from "../smtp.js";
 
 export const getAllUsers = asyncMiddleware(async (req, res) => {
   let users = await User.findAll();
@@ -70,6 +71,17 @@ export const createUser = asyncMiddleware( async (req, res)=>{
     });
 
     let token = JWT.sign({id : user.id,isAdmin : user.isAdmin},process.env.jwtPrivateKey)
+
+    var url = `${req.protocol}://${req.get('host')}/verifyemail/${token}`;
+
+    const mailData = {
+        from: "shaikhimran7585@gmail.com", // sender address
+        to: user.email, // list of receivers
+        subject: `Verify your email!`,
+        text: "",
+        html: `<b>Hello! ${user.name}</b><br>Please verify your mail here : ${url}<br/><hr/>`,
+      };
+    transporter.sendMail(mailData)
 
 
     res.status(201).send({user,token})
