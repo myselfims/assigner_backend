@@ -117,6 +117,22 @@ export const Comment = sequelize.define('Comment',{
     
 })
 
+export const OTP = sequelize.define('OTP',{
+    code : {
+        type : DataTypes.INTEGER,
+        unique : true,
+        allowNull : false,
+    },
+    email: {
+        type: DataTypes.STRING,
+        allowNull : false,
+        validate : {
+          isEmail : true
+        },
+        defaultValue : 'sample@gmail.com'
+    }
+})
+
 
 
 async function Migrate(){
@@ -124,6 +140,7 @@ async function Migrate(){
         User.sync({alter:true})
         Task.sync()
         Comment.sync()
+        OTP.sync({alter:true})
     }
     catch(er){
         console.log('Error while migrating',er)

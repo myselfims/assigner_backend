@@ -14,16 +14,17 @@ export const login = asyncMiddleware( async (req, res)=>{
     if(error) return res.status(400).send(error.details[0].message)
 
     let user = await User.findOne({where:{email:req.body.email}})
-    if (!user) return res.status(400).send('Invalid credentials! ')
+    if (!user) return res.status(400).send('User not found! ')
 
     let check = await bcrypt.compare(req.body.password, user.password)
 
     if (!check) return res.status(400).send('Invalid credentials!')
 
 
-    let token = JWT.sign({id : user.id,isAdmin : user.isAdmin},'Imran@12')
-
-    res.send({'token' : token,'isAdmin':user.isAdmin})
+    let token = JWT.sign({id : user.id,isAdmin : user.isAdmin, isVerified : user.isVerified},'Imran@12')
+    console.log(token)
+    res.send({'token' : token,'isAdmin':user.isAdmin,'isVerified':user.isVerified})
 
 
 })
+

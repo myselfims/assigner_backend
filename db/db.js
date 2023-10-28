@@ -1,11 +1,9 @@
 import { Sequelize } from "sequelize";
 
-let database = process.env.DATABASE
-
-const sequelize = new Sequelize('railway', 'root', 'ykmXliGSDNKnh3oSlpTH', {
-    host: 'containers-us-west-202.railway.app',
+const sequelize = new Sequelize(process.env.DB_DATABASE || 'tmsdatabase', 'root', process.env.DB_PASSWORD || 'Imran@12', {
+    host: process.env.DB_HOST || 'localhost',
     dialect: 'mysql',
-    port : 5594,
+    port : process.env.DB_PORT || 3306,
     pool: {
         max: 15,
         min: 5,

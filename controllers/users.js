@@ -3,8 +3,7 @@ import { User } from "../db/models.js";
 import Joi from "joi";
 import bcrypt from "bcrypt";
 import JWT from "jsonwebtoken";
-import { transporter } from "../smtp.js";
-import { generate } from "otp-generator";
+
 
 export const getAllUsers = asyncMiddleware(async (req, res) => {
   let users = await User.findAll();
@@ -71,17 +70,5 @@ export const createUser = asyncMiddleware(async (req, res) => {
     process.env.jwtPrivateKey
   );
 
-//   var url = `${req.protocol}://${req.get("host")}/verifyemail/${token}`;
-    let otp = generate(4,{digits:true,lowerCaseAlphabets:false,upperCaseAlphabets:false,specialChars:false})
-
-  const mailData = {
-    from: "shaikhimran7585@gmail.com", // sender address
-    to: user.email, // list of receivers
-    subject: `Verify your email!`,
-    text: "",
-    html: `<b>Hello! ${user.name}</b><br>Here is your otp : ${otp}<br/><hr/>`,
-  };
-  transporter.sendMail(mailData);
-
-  res.status(201).send({ user, token });
+  return res.status(201).send({ user, token });
 });
