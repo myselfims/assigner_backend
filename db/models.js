@@ -38,7 +38,7 @@ export const User = sequelize.define('User', {
         allowNull : false,
         defaultValue : false
     },
-    isVerfied : {
+    isVerified : {
         type : DataTypes.BOOLEAN,
         allowNull : false,
         defaultValue : true
@@ -137,10 +137,10 @@ export const OTP = sequelize.define('OTP',{
 
 async function Migrate(){
     try{
-        User.sync({alter:true})
+        User.sync()
         Task.sync()
         Comment.sync()
-        OTP.sync({alter:true})
+        OTP.sync()
     }
     catch(er){
         console.log('Error while migrating',er)

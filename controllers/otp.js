@@ -42,6 +42,7 @@ export const sendOtp = asyncMiddleware(async (req, res) => {
           console.error(`Error deleting OTP record: ${error.message}`);
         }
       }, 300000);
+      console.log('OTP sent')
       return res.send("OTP sent!");
     } else {
       console.log(error)
@@ -54,8 +55,9 @@ export const verifyOtp = asyncMiddleware(async (req, res) => {
   if (!req.body.email) return res.status(400).send("email is required!");
   const otpObject = await OTP.findOne({where:{ code: req.params.otp }});
   const user = await User.findOne({where:{email:req.body.email}})
-  if (!otpObject.email==user.email) return res.status(400).send("email is not valid!");
+  if (!user) return res.status(400).send("email is not registered!");
   if (!otpObject) return res.status(400).send("OTP is not valid!");
+  if (!otpObject.email==req.body.email) return res.status(400).send("email is not valid!");
   user.isVerified = true;
   user.save()
   otpObject.destroy();
