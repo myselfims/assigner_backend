@@ -51,10 +51,13 @@ export const sendOtp = asyncMiddleware(async (req, res) => {
 });
 
 export const verifyOtp = asyncMiddleware(async (req, res) => {
-  const otpObject = await OTP.findOne({where:{ code: req.params.otp }});
   if (!req.body.email) return res.status(400).send("email is required!");
-  if (!otpObject.email==req.body.email) return res.status(400).send("email is not valid!");
+  const otpObject = await OTP.findOne({where:{ code: req.params.otp }});
+  const user = await User.findOne({where:{email:req.body.email}})
+  if (!otpObject.email==user.email) return res.status(400).send("email is not valid!");
   if (!otpObject) return res.status(400).send("OTP is not valid!");
+  user.isVerified = true;
+  user.save()
   otpObject.destroy();
   return res.send("OTP Verfied!");
 });
