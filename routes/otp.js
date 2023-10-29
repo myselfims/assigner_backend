@@ -4,7 +4,7 @@ import {sendOtp,verifyOtp} from '../controllers/otp.js'
 const router = express.Router()
 
 router.post('/send',sendOtp)
-router.get('/verify/:otp',verifyOtp)
+router.post('/verify/:otp',verifyOtp)
 
 
 
