@@ -34,7 +34,14 @@ export const sendOtp = asyncMiddleware(async (req, res) => {
 
   transporter.sendMail(mailData, (error, info) => {
     if (!error) {
-      console.log(info)
+      setTimeout(async () => {
+        try {
+          await OTP.destroy({ where: { code: otpcode, email: req.body.email } });
+          console.log(`OTP record deleted: ${otpcode}`);
+        } catch (error) {
+          console.error(`Error deleting OTP record: ${error.message}`);
+        }
+      }, 300000);
       return res.send("OTP sent!");
     } else {
       console.log(error)
