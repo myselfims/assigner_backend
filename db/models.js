@@ -36,7 +36,7 @@ export const User = sequelize.define('User', {
     isAdmin : {
         type : DataTypes.BOOLEAN,
         allowNull : false,
-        defaultValue : false
+        defaultValue : true
     },
     isVerified : {
         type : DataTypes.BOOLEAN,
