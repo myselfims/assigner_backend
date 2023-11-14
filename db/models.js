@@ -137,7 +137,7 @@ export const OTP = sequelize.define('OTP',{
 
 async function Migrate(){
     try{
-        User.sync({alert:true})
+        User.sync({alter:true})
         Task.sync()
         Comment.sync()
         OTP.sync()
