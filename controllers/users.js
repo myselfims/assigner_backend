@@ -72,3 +72,15 @@ export const createUser = asyncMiddleware(async (req, res) => {
 
   return res.status(201).send({ user, token });
 });
+
+
+export const resetPassword = asyncMiddleware( async (req, res)=> {
+  let user = await User.findOne({ where: { email: req.body.email } });
+  if (user){
+    let hashedPassword = await bcrypt.hash(req.body.password, 10);
+    user.password = hashedPassword
+    user.save()
+    return res.send(user)
+  }
+  return res.send({"msg": "User not found!"})
+})
