@@ -2,6 +2,8 @@ import { asyncMiddleware } from "../middlewares/async.js";
 import { OTP, User } from "../db/models.js";
 import { generate } from "otp-generator";
 import { transporter } from "../smtp.js";
+import { templates } from "../config/emailTemplates.js";
+import { generateEmailContent } from "../config/emailTemplates.js";
 import Joi from "joi";
 
 const emailSchemal = Joi.object({
@@ -23,13 +25,17 @@ export const sendOtp = asyncMiddleware(async (req, res) => {
   });
   let otpObject = await OTP.create({ code: otpcode, email:req.body.email});
   // otpObject.save()
+  const values = {
+    userName : user.name,  // User's name for dynamic insertion
+    otp : otpObject.code       // The OTP for dynamic insertion
+  };
 
   const mailData = {
     from:'riseimstechnologies@gmail.com',
     to: req.body.email, // list of receivers
     subject: `Verify your email!`,
     text: "",
-    html: `<b>Hello! ${user.name}</b><br>Here is your otp : ${otpObject.code}<br/><hr/>`,
+    html: generateEmailContent(templates.otpTemplate, values),
   };
 
   transporter.sendMail(mailData, (error, info) => {

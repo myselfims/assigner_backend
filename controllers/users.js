@@ -3,12 +3,38 @@ import { User } from "../db/models.js";
 import Joi from "joi";
 import bcrypt from "bcrypt";
 import JWT from "jsonwebtoken";
+import { Sequelize } from "sequelize";
 
 
 export const getAllUsers = asyncMiddleware(async (req, res) => {
-  let users = await User.findAll();
+  const query = req.query.query; // Get the query parameter from the request
+  
+  let users;
+  if (query) {
+    // If query exists, filter users by both name and email
+    users = await User.findAll({
+      where: Sequelize.or(
+        Sequelize.where(
+          Sequelize.fn('LOWER', Sequelize.col('name')),
+          'LIKE',
+          `%${query.toLowerCase()}%`
+        ),
+        Sequelize.where(
+          Sequelize.fn('LOWER', Sequelize.col('email')),
+          'LIKE',
+          `%${query.toLowerCase()}%`
+        )
+      ),
+    });
+  } else {
+    // If no query, return all users
+    users = await User.findAll();
+  }
+
   res.send(users);
 });
+
+
 
 export const getSelf = asyncMiddleware(async (req, res) => {
   let user = await User.findByPk(req.user.id);
@@ -72,3 +98,15 @@ export const createUser = asyncMiddleware(async (req, res) => {
 
   return res.status(201).send({ user, token });
 });
+
+
+export const resetPassword = asyncMiddleware( async (req, res)=> {
+  let user = await User.findOne({ where: { email: req.body.email } });
+  if (user){
+    let hashedPassword = await bcrypt.hash(req.body.password, 10);
+    user.password = hashedPassword
+    user.save()
+    return res.send(user)
+  }
+  return res.send({"msg": "User not found!"})
+})

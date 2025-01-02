@@ -1,90 +1,182 @@
 import { DataTypes } from "sequelize";
 import sequelize from "./db.js";
-const queryInterface = sequelize.getQueryInterface()
 
+const queryInterface = sequelize.getQueryInterface();
 
 export const User = sequelize.define('User', {
-    // Model attributes are defined here
-    id : {
-        type : DataTypes.INTEGER,
-        autoIncrement : true,
-        primaryKey : true,
+    id: {
+        type: DataTypes.INTEGER,
+        autoIncrement: true,
+        primaryKey: true,
     },
     avatar: {
-      type: DataTypes.TEXT,
-      allowNull: true,
+        type: DataTypes.TEXT,
+        allowNull: true,
     },
     name: {
-      type: DataTypes.STRING,
-      allowNull: false,
+        type: DataTypes.STRING,
+        allowNull: false,
     },
     email: {
-      type: DataTypes.STRING,
-      allowNull : false,
-      unique : true,
-      validate : {
-        isEmail : true
-      }
+        type: DataTypes.STRING,
+        allowNull: false,
+        validate: {
+            isEmail: true,
+        },
     },
-    password : {
-        type : DataTypes.STRING,
-        validate : {
-            min : 8,
-            max : 12
-        }
+    password: {
+        type: DataTypes.STRING,
+        allowNull: false,
     },
-    isAdmin : {
-        type : DataTypes.BOOLEAN,
-        allowNull : false,
-        defaultValue : true
+    isAdmin: {
+        type: DataTypes.BOOLEAN,
+        allowNull: false,
+        defaultValue: false,
     },
-    isVerified : {
-        type : DataTypes.BOOLEAN,
-        allowNull : false,
-        defaultValue : true
-    }
-
-  }, {
-    // Other model options go here
+    isVerified: {
+        type: DataTypes.BOOLEAN,
+        allowNull: false,
+        defaultValue: false,
+    },
 });
 
 User.associate = (models) => {
-    // Association for tasks assigned by the user
-    User.hasMany(models.Task, {
-        foreignKey: 'assignedById',
-        as: 'AssignedTasks',
+    User.hasMany(models.Project, {
+        foreignKey: 'createdBy',
+        as: 'createdProjects',
     });
-
-    // Association for tasks assigned to the user
-    User.hasMany(models.Task, {
-        foreignKey: 'assignedToId',
-        as: 'TasksAssignedTo',
+    
+    User.belongsToMany(models.Project, {
+        through: 'UserProjects',
+        as: 'assignedProjects',
+        foreignKey: 'userId',
     });
+    
 };
 
 
-export const Task = sequelize.define('Task',{
-    id : {
-        type : DataTypes.INTEGER,
-        autoIncrement : true,
-        primaryKey : true
+export const Project = sequelize.define('Project', {
+    id: {
+        type: DataTypes.INTEGER,
+        autoIncrement: true,
+        primaryKey: true,
     },
-    title : {
-        type : DataTypes.STRING,
-        allowNull : false
+    name: {
+        type: DataTypes.STRING,
+        allowNull: false,
     },
-    description : {
-        type : DataTypes.TEXT,
-        allowNull : false
+    lead: {
+        type: DataTypes.STRING,
+        allowNull: false,
     },
-    deadline : {
-        type : DataTypes.DATEONLY,
-        allowNull : false
+    startDate: {
+        type: DataTypes.DATE,
+        allowNull: false,
     },
     status: {
-        type: DataTypes.ENUM('Assigned', 'In Progress', 'Done'),
+        type: DataTypes.ENUM('Ongoing', 'Completed', 'On Hold'),
+        defaultValue: 'Ongoing',
+    },
+    priority: {
+        type: DataTypes.ENUM('Low', 'Medium', 'High'),
+        defaultValue: 'Medium',
+    },
+    budget: {
+        type: DataTypes.FLOAT,
+        allowNull: true,
+    },
+    deadline: {
+        type: DataTypes.DATE,
+        allowNull: true,
+    },
+    description: {
+        type: DataTypes.TEXT,
+        allowNull: true,
+    },
+    createdBy: {
+        type: DataTypes.INTEGER,
         allowNull: false,
-        defaultValue: 'Assigned', // Change default value as needed
+        references: {
+            model: 'Users', // Adjust this if `User` has a custom table name
+            key: 'id',
+        },
+    },
+});
+
+
+
+Project.associate = (models) => {
+    Project.belongsTo(User, {
+        foreignKey: 'createdBy',
+        as: 'creator',
+    });
+    
+    Project.belongsToMany(User, {
+        through: 'UserProjects',
+        as: 'assignees',
+        foreignKey: 'projectId',
+    });    
+};
+
+
+
+export const UserProjects = sequelize.define('UserProjects', {
+  id: {
+    type: DataTypes.INTEGER,
+    autoIncrement: true,
+    primaryKey: true,
+  },
+  userId: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    references: {
+      model: 'Users',
+      key: 'id',
+    },
+  },
+  projectId: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    references: {
+      model: 'Projects',
+      key: 'id',
+    },
+  },
+  role: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+  status: {
+    type: DataTypes.STRING,
+    defaultValue: 'active',
+  },
+});
+
+
+
+
+export const Task = sequelize.define('Task', {
+    id: {
+        type: DataTypes.INTEGER,
+        autoIncrement: true,
+        primaryKey: true,
+    },
+    title: {
+        type: DataTypes.STRING,
+        allowNull: false,
+    },
+    description: {
+        type: DataTypes.TEXT,
+        allowNull: false,
+    },
+    deadline: {
+        type: DataTypes.DATEONLY,
+        allowNull: false,
+    },
+    status: {
+        type: DataTypes.ENUM('To-Do', 'Assigned', 'In Progress', 'Done'),
+        allowNull: false,
+        defaultValue: 'To-Do',
     },
     assignedById: {
         type: DataTypes.INTEGER,
@@ -94,76 +186,68 @@ export const Task = sequelize.define('Task',{
         type: DataTypes.INTEGER,
         allowNull: false,
     },
-})
+    projectId: {
+        type: DataTypes.INTEGER,
+        references: {
+            model: 'Projects',
+            key: 'id',
+        },
+        allowNull: false,
+    },
+});
 
-export const Comment = sequelize.define('Comment',{
-    id : {
-        type : DataTypes.INTEGER,
-        autoIncrement : true,
-        primaryKey : true
-    },
-    comment : {
-        type : DataTypes.STRING,
-        allowNull : false
-    },
-    taskId : {
-        type : DataTypes.INTEGER,
-        allowNull : false
-    },
-    userId : {
-        type : DataTypes.INTEGER,
-        allowNull : false
-    }
-    
-})
+Task.belongsTo(Project, { foreignKey: 'projectId', as: 'project' });
+Project.hasMany(Task, { foreignKey: 'projectId', as: 'tasks' });
 
-export const OTP = sequelize.define('OTP',{
-    code : {
-        type : DataTypes.INTEGER,
-        unique : true,
-        allowNull : false,
+export const Comment = sequelize.define('Comment', {
+    id: {
+        type: DataTypes.INTEGER,
+        autoIncrement: true,
+        primaryKey: true,
+    },
+    comment: {
+        type: DataTypes.STRING,
+        allowNull: false,
+    },
+    parentId: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+    },
+    userId: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+    },
+    parentType: {
+        type: DataTypes.TEXT,
+        allowNull: false,
+    },
+});
+
+export const OTP = sequelize.define('OTP', {
+    code: {
+        type: DataTypes.INTEGER,
+        unique: true,
+        allowNull: false,
     },
     email: {
         type: DataTypes.STRING,
-        allowNull : false,
-        validate : {
-          isEmail : true
+        allowNull: false,
+        validate: {
+            isEmail: true,
         },
-        defaultValue : 'sample@gmail.com'
-    }
-})
+        defaultValue: 'sample@gmail.com',
+    },
+});
 
+// Use migrations for schema changes instead of sync({ alter: true })
+async function migrate() {
+    try {
+        await sequelize.sync({alter:true});
 
-
-async function Migrate(){
-    try{
-        User.sync({alter:true})
-        Task.sync()
-        Comment.sync()
-        OTP.sync()
-    }
-    catch(er){
-        console.log('Error while migrating',er)
+        console.log('All models were synchronized successfully.');
+    } catch (error) {
+        console.error('Error during migration:', error);
     }
 }
 
-Migrate()
-
-
-
-
-// module.exports = {
-//     up: async (queryInterface, Sequelize) => {
-//       await queryInterface.addColumn('Users', 'avatar', {
-//         type: Sequelize.STRING,
-//         allowNull: true,
-//         defaultValue: null,
-//       });
-//     },
-  
-//     down: async (queryInterface, Sequelize) => {
-//       await queryInterface.removeColumn('Users', 'avatar');
-//     },
-//   };
-
-
+migrate();
