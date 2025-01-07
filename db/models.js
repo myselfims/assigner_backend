@@ -54,6 +54,23 @@ User.associate = (models) => {
     
 };
 
+export const Sprint = sequelize.define("Sprint", {
+    id : {
+        type : DataTypes.INTEGER,
+        primaryKey : true,
+        autoIncrement : true,
+        allowNull : false,
+    },
+    projectId : {
+        type : DataTypes.INTEGER,
+        allowNull : false,
+    },
+    title : {
+        type : DataTypes.STRING,
+        
+    }
+})
+
 
 export const Project = sequelize.define('Project', {
     id: {
@@ -188,11 +205,13 @@ export const Task = sequelize.define('Task', {
     },
     projectId: {
         type: DataTypes.INTEGER,
-        references: {
-            model: 'Projects',
-            key: 'id',
-        },
+        references: { model: 'Projects', key: 'id' },
         allowNull: false,
+    },
+    sprintId: {
+        type: DataTypes.INTEGER,
+        references: { model: 'Sprints', key: 'id' },
+        allowNull: true, // Null for tasks not tied to sprints
     },
 });
 

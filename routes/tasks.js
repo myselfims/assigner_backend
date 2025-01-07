@@ -13,7 +13,7 @@ const router = express.Router();
 
 
 
-router.get("/", auth(), getAllTasks).post("/", auth(true), createTask);
+router.get("/:projectId", auth(), getAllTasks).post("/", auth(true), createTask);
 
 router
   .get("/:id", auth(true), getTask)

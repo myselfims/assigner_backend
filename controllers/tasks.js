@@ -4,6 +4,7 @@ import Joi from "joi";
 import { transporter } from "../smtp.js";
 
 let schema = Joi.object({
+  projectId : Joi.number().required(),
   title: Joi.string().min(2).required(),
   description: Joi.string().required(),
   deadline: Joi.date().required(),
@@ -12,10 +13,11 @@ let schema = Joi.object({
 
 export const getAllTasks = asyncMiddleware(async (req, res) => {
   let tasks;
+  let {projectId} = req.params;
   if (req.user.isAdmin) {
-    tasks = await Task.findAll();
+    tasks = await Task.findAll({where : {projectId : projectId}});
   } else {
-    tasks = await Task.findAll({ where: { assignedToId: req.user.id } });
+    tasks = await Task.findAll({ where: { assignedToId: req.user.id, projectId : projectId } });
   }
 
   res.send(tasks);
@@ -26,6 +28,7 @@ export const createTask = asyncMiddleware(async (req, res) => {
   if (error) return res.status(400).send(error.details[0].message);
 
   let task = await Task.create({
+    projectId : req.body.projectId,
     title: req.body.title,
     description: req.body.description,
     deadline: req.body.deadline,

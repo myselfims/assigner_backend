@@ -5,7 +5,8 @@ export function asyncMiddleware(handler){
         }
         catch (err){
             console.log(err)
-            res.send(err)
+            res.status(500).send({ error: err.message || "An unexpected error occurred" });
+
         }
     }
 }
