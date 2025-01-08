@@ -6,6 +6,7 @@ import tasks from './routes/tasks.js'
 import comment from './routes/comment.js'
 import otp from './routes/otp.js';
 import projects from './routes/projects.js';
+import sprint from './routes/sprint.js';
 import notifications from './routes/notifications.js'
 import cors from 'cors';
 import { createServer } from 'node:http';
@@ -23,6 +24,7 @@ const io = initializeSocket(server)
 app.use('/api/users',user)
 app.use('/api/login',login)
 app.use('/api/projects',projects)
+app.use('/api/sprints',sprint)
 app.use('/api/tasks',tasks)
 app.use('/api/comments',comment)
 app.use('/api/otp',otp)

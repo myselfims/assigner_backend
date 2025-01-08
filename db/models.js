@@ -53,23 +53,45 @@ User.associate = (models) => {
     });
     
 };
-
 export const Sprint = sequelize.define("Sprint", {
-    id : {
-        type : DataTypes.INTEGER,
-        primaryKey : true,
-        autoIncrement : true,
-        allowNull : false,
+    id: {
+        type: DataTypes.INTEGER,
+        primaryKey: true,
+        autoIncrement: true,
+        allowNull: false,
     },
-    projectId : {
-        type : DataTypes.INTEGER,
-        allowNull : false,
+    projectId: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        references: {
+            model: "Projects", // Replace "Projects" with the actual name of your Project model or table
+            key: "id",         // Ensure the `id` column in the Project model is the primary key
+        },
+        onUpdate: "CASCADE", // Automatically update if the project ID changes
+        onDelete: "CASCADE", // Automatically delete sprints if the project is deleted
     },
-    title : {
-        type : DataTypes.STRING,
-        
-    }
-})
+    title: {
+        type: DataTypes.STRING,
+        allowNull: false, // Adding this to ensure every sprint has a title
+    },
+    description: {
+        type: DataTypes.TEXT,
+        allowNull: true,
+    },
+    status: {
+        type: DataTypes.ENUM("Not Started", "In Progress", "Completed"),
+        defaultValue: "Not Started",
+    },
+    startDate: {
+        type: DataTypes.DATE,
+        allowNull: true,
+    },
+    endDate: {
+        type: DataTypes.DATE,
+        allowNull: true,
+    },
+});
+
 
 
 export const Project = sequelize.define('Project', {
@@ -261,7 +283,7 @@ export const OTP = sequelize.define('OTP', {
 // Use migrations for schema changes instead of sync({ alter: true })
 async function migrate() {
     try {
-        await sequelize.sync({alter:true});
+        await sequelize.sync({});
 
         console.log('All models were synchronized successfully.');
     } catch (error) {
