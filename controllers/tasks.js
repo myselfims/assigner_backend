@@ -4,6 +4,7 @@ import Joi from "joi";
 import { transporter } from "../smtp.js";
 
 let schema = Joi.object({
+  sprintId : Joi.number(),
   projectId : Joi.number().required(),
   title: Joi.string().min(2).required(),
   description: Joi.string().required(),
@@ -24,10 +25,12 @@ export const getAllTasks = asyncMiddleware(async (req, res) => {
 });
 
 export const createTask = asyncMiddleware(async (req, res) => {
+
   let { error } = schema.validate(req.body);
   if (error) return res.status(400).send(error.details[0].message);
 
   let task = await Task.create({
+    sprintId : req.body.sprintId,
     projectId : req.body.projectId,
     title: req.body.title,
     description: req.body.description,

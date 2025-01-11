@@ -90,6 +90,11 @@ export const Sprint = sequelize.define("Sprint", {
         type: DataTypes.DATE,
         allowNull: true,
     },
+    index: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        defaultValue: 0 // Default index value, can be used when new tasks are created
+      }
 });
 
 
@@ -235,6 +240,11 @@ export const Task = sequelize.define('Task', {
         references: { model: 'Sprints', key: 'id' },
         allowNull: true, // Null for tasks not tied to sprints
     },
+    index: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        defaultValue: 0 // Default index value, can be used when new tasks are created
+      }
 });
 
 Task.belongsTo(Project, { foreignKey: 'projectId', as: 'project' });
@@ -267,7 +277,7 @@ export const Comment = sequelize.define('Comment', {
 export const OTP = sequelize.define('OTP', {
     code: {
         type: DataTypes.INTEGER,
-        unique: true,
+        // unique: true,
         allowNull: false,
     },
     email: {
@@ -283,7 +293,7 @@ export const OTP = sequelize.define('OTP', {
 // Use migrations for schema changes instead of sync({ alter: true })
 async function migrate() {
     try {
-        await sequelize.sync({});
+        await sequelize.sync({alter: true});
 
         console.log('All models were synchronized successfully.');
     } catch (error) {
