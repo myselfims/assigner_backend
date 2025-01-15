@@ -67,5 +67,5 @@ export const verifyOtp = asyncMiddleware(async (req, res) => {
   user.isVerified = true;
   user.save()
   otpObject.destroy();
-  return res.send("OTP Verfied!");
+  return res.send(user);
 });

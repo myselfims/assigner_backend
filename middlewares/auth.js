@@ -13,6 +13,7 @@ const auth = (admin = false) => {
         return res.status(403).send("Unauthorized!");
       }
       req.user = user;
+      console.log("user is " , user)
       next();
     } catch (err) {
       console.error("JWT Verification Error:", err.message);

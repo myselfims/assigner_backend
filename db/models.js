@@ -1,170 +1,276 @@
 import { DataTypes } from "sequelize";
 import sequelize from "./db.js";
+import { seedAccountTypes, seedRoles } from "./seedInitial.js";
 
 const queryInterface = sequelize.getQueryInterface();
 
-export const User = sequelize.define('User', {
-    id: {
-        type: DataTypes.INTEGER,
-        autoIncrement: true,
-        primaryKey: true,
+export const Sprint = sequelize.define("Sprint", {
+  id: {
+    type: DataTypes.INTEGER,
+    primaryKey: true,
+    autoIncrement: true,
+    allowNull: false,
+  },
+  projectId: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    references: {
+      model: "Projects", // Replace "Projects" with the actual name of your Project model or table
+      key: "id", // Ensure the `id` column in the Project model is the primary key
     },
-    avatar: {
-        type: DataTypes.TEXT,
-        allowNull: true,
+    onUpdate: "CASCADE", // Automatically update if the project ID changes
+    onDelete: "CASCADE", // Automatically delete sprints if the project is deleted
+  },
+  title: {
+    type: DataTypes.STRING,
+    allowNull: false, // Adding this to ensure every sprint has a title
+  },
+  description: {
+    type: DataTypes.TEXT,
+    allowNull: true,
+  },
+  status: {
+    type: DataTypes.ENUM("Not Started", "In Progress", "Completed"),
+    defaultValue: "Not Started",
+  },
+  startDate: {
+    type: DataTypes.DATE,
+    allowNull: true,
+  },
+  endDate: {
+    type: DataTypes.DATE,
+    allowNull: true,
+  },
+  index: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    defaultValue: 0, // Default index value, can be used when new tasks are created
+  },
+});
+
+// User Model
+export const User = sequelize.define("User", {
+  id: {
+    type: DataTypes.INTEGER,
+    autoIncrement: true,
+    primaryKey: true,
+  },
+  avatar: {
+    type: DataTypes.TEXT,
+    allowNull: true,
+  },
+  name: {
+    type: DataTypes.STRING,
+    allowNull: false,
+  },
+  email: {
+    type: DataTypes.STRING,
+    allowNull: false,
+    validate: {
+      isEmail: true,
     },
-    name: {
-        type: DataTypes.STRING,
-        allowNull: false,
+  },
+  password: {
+    type: DataTypes.STRING,
+    allowNull: false,
+  },
+  roleId: {
+    // Foreign Key for Role
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    references: {
+      model: "Roles", // Should match the table name for Role
+      key: "id",
     },
-    email: {
-        type: DataTypes.STRING,
-        allowNull: false,
-        validate: {
-            isEmail: true,
-        },
+  },
+  designationId: {
+    // Foreign Key for Designation
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    references: {
+      model: "Designations", // Should match the table name for Designation
+      key: "id",
     },
-    password: {
-        type: DataTypes.STRING,
-        allowNull: false,
+  },
+  accountTypeId: {
+    // Foreign Key for Designation
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    references: {
+      model: "AccountTypes", // Should match the table name for Designation
+      key: "id",
     },
-    isAdmin: {
-        type: DataTypes.BOOLEAN,
-        allowNull: false,
-        defaultValue: false,
+  },
+  isVerified: {
+    type: DataTypes.BOOLEAN,
+    allowNull: false,
+    defaultValue: false,
+  },
+});
+
+export const AccountType = sequelize.define("AccountType", {
+  id: {
+    type: DataTypes.INTEGER,
+    autoIncrement: true,
+    primaryKey: true,
+  },
+  type: {
+    type: DataTypes.STRING,
+    allowNull: false,
+  },
+  icon: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+});
+
+// Designation Model
+export const Designation = sequelize.define("Designation", {
+  id: {
+    type: DataTypes.INTEGER,
+    autoIncrement: true,
+    primaryKey: true,
+  },
+  name: {
+    type: DataTypes.STRING,
+    allowNull: false,
+  },
+});
+
+// Role Model
+export const Role = sequelize.define("Role", {
+  id: {
+    type: DataTypes.INTEGER,
+    autoIncrement: true,
+    primaryKey: true,
+  },
+  name: {
+    type: DataTypes.STRING,
+    allowNull: false,
+  },
+  description: {
+    type: DataTypes.TEXT,
+    allowNull: true,
+  },
+});
+
+// Associations
+User.belongsTo(Role, { foreignKey: "roleId", as: "role" });
+Role.hasOne(User, { foreignKey: "roleId" });
+
+User.belongsTo(AccountType, { foreignKey: "accountTypeId", as: "accountType" });
+AccountType.hasOne(User, { foreignKey: "accountTypeId" });
+
+User.belongsTo(Designation, { foreignKey: "designationId", as: "designation" });
+Designation.hasOne(User, { foreignKey: "designationId" });
+
+export const RolePermissions = sequelize.define("RolePermissions", {
+  id: {
+    type: DataTypes.INTEGER,
+    autoIncrement: true,
+    primaryKey: true,
+  },
+  name: {
+    type: DataTypes.STRING,
+    allowNull: false,
+  },
+  description: {
+    type: DataTypes.TEXT,
+    allowNull: true,
+  },
+});
+
+export const Permission = sequelize.define("Permission", {
+  id: {
+    type: DataTypes.INTEGER,
+    autoIncrement: true,
+    primaryKey: true,
+  },
+  name: {
+    type: DataTypes.STRING,
+    allowNull: false,
+  },
+  description: {
+    type: DataTypes.TEXT,
+    allowNull: true,
+  },
+});
+
+export const Project = sequelize.define("Project", {
+  id: {
+    type: DataTypes.INTEGER,
+    autoIncrement: true,
+    primaryKey: true,
+  },
+  name: {
+    type: DataTypes.STRING,
+    allowNull: false,
+  },
+  lead: {
+    type: DataTypes.STRING,
+    allowNull: false,
+  },
+  startDate: {
+    type: DataTypes.DATE,
+    allowNull: false,
+  },
+  status: {
+    type: DataTypes.ENUM("Ongoing", "Completed", "On Hold"),
+    defaultValue: "Ongoing",
+  },
+  priority: {
+    type: DataTypes.ENUM("Low", "Medium", "High"),
+    defaultValue: "Medium",
+  },
+  budget: {
+    type: DataTypes.FLOAT,
+    allowNull: true,
+  },
+  deadline: {
+    type: DataTypes.DATE,
+    allowNull: true,
+  },
+  description: {
+    type: DataTypes.TEXT,
+    allowNull: true,
+  },
+  createdBy: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    references: {
+      model: "Users", // Adjust this if `User` has a custom table name
+      key: "id",
     },
-    isVerified: {
-        type: DataTypes.BOOLEAN,
-        allowNull: false,
-        defaultValue: false,
-    },
+  },
 });
 
 User.associate = (models) => {
-    User.hasMany(models.Project, {
-        foreignKey: 'createdBy',
-        as: 'createdProjects',
-    });
-    
-    User.belongsToMany(models.Project, {
-        through: 'UserProjects',
-        as: 'assignedProjects',
-        foreignKey: 'userId',
-    });
-    
+  User.hasMany(models.Project, {
+    foreignKey: "createdBy",
+    as: "createdProjects",
+  });
+
+  User.belongsToMany(models.Project, {
+    through: "UserProject",
+    as: "assignedProjects",
+    foreignKey: "userId",
+  });
 };
-export const Sprint = sequelize.define("Sprint", {
-    id: {
-        type: DataTypes.INTEGER,
-        primaryKey: true,
-        autoIncrement: true,
-        allowNull: false,
-    },
-    projectId: {
-        type: DataTypes.INTEGER,
-        allowNull: false,
-        references: {
-            model: "Projects", // Replace "Projects" with the actual name of your Project model or table
-            key: "id",         // Ensure the `id` column in the Project model is the primary key
-        },
-        onUpdate: "CASCADE", // Automatically update if the project ID changes
-        onDelete: "CASCADE", // Automatically delete sprints if the project is deleted
-    },
-    title: {
-        type: DataTypes.STRING,
-        allowNull: false, // Adding this to ensure every sprint has a title
-    },
-    description: {
-        type: DataTypes.TEXT,
-        allowNull: true,
-    },
-    status: {
-        type: DataTypes.ENUM("Not Started", "In Progress", "Completed"),
-        defaultValue: "Not Started",
-    },
-    startDate: {
-        type: DataTypes.DATE,
-        allowNull: true,
-    },
-    endDate: {
-        type: DataTypes.DATE,
-        allowNull: true,
-    },
-    index: {
-        type: DataTypes.INTEGER,
-        allowNull: false,
-        defaultValue: 0 // Default index value, can be used when new tasks are created
-      }
-});
-
-
-
-export const Project = sequelize.define('Project', {
-    id: {
-        type: DataTypes.INTEGER,
-        autoIncrement: true,
-        primaryKey: true,
-    },
-    name: {
-        type: DataTypes.STRING,
-        allowNull: false,
-    },
-    lead: {
-        type: DataTypes.STRING,
-        allowNull: false,
-    },
-    startDate: {
-        type: DataTypes.DATE,
-        allowNull: false,
-    },
-    status: {
-        type: DataTypes.ENUM('Ongoing', 'Completed', 'On Hold'),
-        defaultValue: 'Ongoing',
-    },
-    priority: {
-        type: DataTypes.ENUM('Low', 'Medium', 'High'),
-        defaultValue: 'Medium',
-    },
-    budget: {
-        type: DataTypes.FLOAT,
-        allowNull: true,
-    },
-    deadline: {
-        type: DataTypes.DATE,
-        allowNull: true,
-    },
-    description: {
-        type: DataTypes.TEXT,
-        allowNull: true,
-    },
-    createdBy: {
-        type: DataTypes.INTEGER,
-        allowNull: false,
-        references: {
-            model: 'Users', // Adjust this if `User` has a custom table name
-            key: 'id',
-        },
-    },
-});
-
-
 
 Project.associate = (models) => {
-    Project.belongsTo(User, {
-        foreignKey: 'createdBy',
-        as: 'creator',
-    });
-    
-    Project.belongsToMany(User, {
-        through: 'UserProjects',
-        as: 'assignees',
-        foreignKey: 'projectId',
-    });    
+  Project.belongsTo(User, {
+    foreignKey: "createdBy",
+    as: "creator",
+  });
+
+  Project.belongsToMany(User, {
+    through: "UserProject",
+    as: "assignees",
+    foreignKey: "projectId",
+  });
 };
 
-
-
-export const UserProjects = sequelize.define('UserProjects', {
+export const UserProject = sequelize.define("UserProject", {
   id: {
     type: DataTypes.INTEGER,
     autoIncrement: true,
@@ -174,16 +280,16 @@ export const UserProjects = sequelize.define('UserProjects', {
     type: DataTypes.INTEGER,
     allowNull: false,
     references: {
-      model: 'Users',
-      key: 'id',
+      model: "Users",
+      key: "id",
     },
   },
   projectId: {
     type: DataTypes.INTEGER,
     allowNull: false,
     references: {
-      model: 'Projects',
-      key: 'id',
+      model: "Projects",
+      key: "id",
     },
   },
   role: {
@@ -192,113 +298,109 @@ export const UserProjects = sequelize.define('UserProjects', {
   },
   status: {
     type: DataTypes.STRING,
-    defaultValue: 'active',
+    defaultValue: "active",
   },
 });
 
-
-
-
-export const Task = sequelize.define('Task', {
-    id: {
-        type: DataTypes.INTEGER,
-        autoIncrement: true,
-        primaryKey: true,
-    },
-    title: {
-        type: DataTypes.STRING,
-        allowNull: false,
-    },
-    description: {
-        type: DataTypes.TEXT,
-        allowNull: false,
-    },
-    deadline: {
-        type: DataTypes.DATEONLY,
-        allowNull: false,
-    },
-    status: {
-        type: DataTypes.ENUM('To-Do', 'Assigned', 'In Progress', 'Done'),
-        allowNull: false,
-        defaultValue: 'To-Do',
-    },
-    assignedById: {
-        type: DataTypes.INTEGER,
-        allowNull: false,
-    },
-    assignedToId: {
-        type: DataTypes.INTEGER,
-        allowNull: false,
-    },
-    projectId: {
-        type: DataTypes.INTEGER,
-        references: { model: 'Projects', key: 'id' },
-        allowNull: false,
-    },
-    sprintId: {
-        type: DataTypes.INTEGER,
-        references: { model: 'Sprints', key: 'id' },
-        allowNull: true, // Null for tasks not tied to sprints
-    },
-    index: {
-        type: DataTypes.INTEGER,
-        allowNull: false,
-        defaultValue: 0 // Default index value, can be used when new tasks are created
-      }
+export const Task = sequelize.define("Task", {
+  id: {
+    type: DataTypes.INTEGER,
+    autoIncrement: true,
+    primaryKey: true,
+  },
+  title: {
+    type: DataTypes.STRING,
+    allowNull: false,
+  },
+  description: {
+    type: DataTypes.TEXT,
+    allowNull: false,
+  },
+  deadline: {
+    type: DataTypes.DATEONLY,
+    allowNull: false,
+  },
+  status: {
+    type: DataTypes.ENUM("To-Do", "Assigned", "In Progress", "Done"),
+    allowNull: false,
+    defaultValue: "To-Do",
+  },
+  assignedById: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+  },
+  assignedToId: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+  },
+  projectId: {
+    type: DataTypes.INTEGER,
+    references: { model: "Projects", key: "id" },
+    allowNull: false,
+  },
+  sprintId: {
+    type: DataTypes.INTEGER,
+    references: { model: "Sprints", key: "id" },
+    allowNull: true, // Null for tasks not tied to sprints
+  },
+  index: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    defaultValue: 0, // Default index value, can be used when new tasks are created
+  },
 });
 
-Task.belongsTo(Project, { foreignKey: 'projectId', as: 'project' });
-Project.hasMany(Task, { foreignKey: 'projectId', as: 'tasks' });
+Task.belongsTo(Project, { foreignKey: "projectId", as: "project" });
+Project.hasMany(Task, { foreignKey: "projectId", as: "tasks" });
 
-export const Comment = sequelize.define('Comment', {
-    id: {
-        type: DataTypes.INTEGER,
-        autoIncrement: true,
-        primaryKey: true,
-    },
-    comment: {
-        type: DataTypes.STRING,
-        allowNull: false,
-    },
-    parentId: {
-        type: DataTypes.INTEGER,
-        allowNull: false,
-    },
-    userId: {
-        type: DataTypes.INTEGER,
-        allowNull: false,
-    },
-    parentType: {
-        type: DataTypes.TEXT,
-        allowNull: false,
-    },
+export const Comment = sequelize.define("Comment", {
+  id: {
+    type: DataTypes.INTEGER,
+    autoIncrement: true,
+    primaryKey: true,
+  },
+  comment: {
+    type: DataTypes.STRING,
+    allowNull: false,
+  },
+  parentId: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+  },
+  userId: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+  },
+  parentType: {
+    type: DataTypes.TEXT,
+    allowNull: false,
+  },
 });
 
-export const OTP = sequelize.define('OTP', {
-    code: {
-        type: DataTypes.INTEGER,
-        // unique: true,
-        allowNull: false,
+export const OTP = sequelize.define("OTP", {
+  code: {
+    type: DataTypes.INTEGER,
+    // unique: true,
+    allowNull: false,
+  },
+  email: {
+    type: DataTypes.STRING,
+    allowNull: false,
+    validate: {
+      isEmail: true,
     },
-    email: {
-        type: DataTypes.STRING,
-        allowNull: false,
-        validate: {
-            isEmail: true,
-        },
-        defaultValue: 'sample@gmail.com',
-    },
+    defaultValue: "sample@gmail.com",
+  },
 });
 
 // Use migrations for schema changes instead of sync({ alter: true })
 async function migrate() {
-    try {
-        await sequelize.sync({alter: true});
-
-        console.log('All models were synchronized successfully.');
-    } catch (error) {
-        console.error('Error during migration:', error);
-    }
+  try {
+    await sequelize.sync({ alter: true });
+    console.log("All models were synchronized successfully.");
+  } catch (error) {
+    console.error("Error during migration:", error);
+  }
 }
 
 migrate();

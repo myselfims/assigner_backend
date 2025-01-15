@@ -1,5 +1,5 @@
 import { asyncMiddleware } from "../middlewares/async.js";
-import { User } from "../db/models.js";
+import { Designation, User, UserProject, Project } from "../db/models.js";
 import Joi from "joi";
 import bcrypt from "bcrypt";
 import JWT from "jsonwebtoken";
@@ -30,7 +30,6 @@ export const getAllUsers = asyncMiddleware(async (req, res) => {
     // If no query, return all users
     users = await User.findAll();
   }
-
   res.send(users);
 });
 
@@ -38,9 +37,12 @@ export const getAllUsers = asyncMiddleware(async (req, res) => {
 
 export const getSelf = asyncMiddleware(async (req, res) => {
   let user = await User.findByPk(req.user.id);
-  if (!user) res.status(404).send("User not exist!");
-  res.send(user);
+  if (!user) {
+    return res.status(404).send("User does not exist!"); // Ensure you return here
+  }
+  res.send(user); // Only send response if the user exists
 });
+
 
 export const deleteUser = asyncMiddleware(async (req, res) => {
   let user = await User.findByPk(req.params.id);
@@ -48,6 +50,40 @@ export const deleteUser = asyncMiddleware(async (req, res) => {
   user.destroy();
   res.send("User deleted!");
 });
+
+export const updateSelf = asyncMiddleware(async (req, res) => {
+  try {
+    let user = await User.findByPk(req.user.id);
+    if (!user) {
+      return res.status(404).send("User not found!");
+    }
+
+    console.log("body", req.body);
+    console.log("user", user);
+
+    for (let key of Object.keys(req.body)) {
+      console.log("key", key)
+      console.log("has own prop", user.hasOwnProperty(key))
+      if (user.dataValues.hasOwnProperty(key)) {
+        if (key === "password") {
+          let hashedPassword = await bcrypt.hash(req.body[key], 10);
+          user[key] = hashedPassword;
+        } else {
+          user[key] = req.body[key];
+        }
+      } else {
+        return res.status(400).send(`${key} is not allowed!`);
+      }
+    }
+
+    await user.save(); // Make sure to await this operation
+    res.send(user);
+  } catch (error) {
+    console.error(error);
+    res.status(500).send("An error occurred while updating the user.");
+  }
+});
+
 
 export const updateUser = asyncMiddleware(async (req, res) => {
   let user = await User.findByPk(req.params.id);
@@ -93,10 +129,80 @@ export const createUser = asyncMiddleware(async (req, res) => {
 
   let token = JWT.sign(
     { id: user.id, isAdmin: user.isAdmin },
-    process.env.jwtPrivateKey
+    "Imran@12"
   );
 
   return res.status(201).send({ user, token });
+});
+
+const normalizeText = (text) => text.toLowerCase().replace(/[^a-z0-9]/g, "");
+
+export async function findOrCreateDesignation(designation) {
+  // Normalize the input
+  const normalizedInput = normalizeText(designation);
+
+  // Find matching designation
+  let designationObj = await Designation.findOne({
+    where: {
+      name: normalizedInput, // Ensure normalized_name column exists
+    },
+  });
+
+  if (!designationObj) {
+    // If no match is found, create a new designation
+    designationObj = await Designation.create({
+      name: normalizedInput, // Original user input
+    });
+  }
+
+  return designationObj;
+}
+
+
+export const addMember = asyncMiddleware(async (req, res) => {
+  const body = req.body
+  const schema = Joi.object({
+    name: Joi.string().min(5).max(50).required(),
+    email: Joi.string().min(5).max(255).required().email(),
+    designation: Joi.string(),
+    projectId : Joi.number()
+  });
+
+  let { error } = schema.validate(req.body);
+  console.log(error)
+
+  if (error) return res.status(400).send(error.details[0].message);
+
+  let check = await User.findOne({ where: { email: req.body.email } });
+  if (check) return res.status(400).send("User already exist!");
+
+  let hashedPassword = await bcrypt.hash("asdfasdf", 10);
+  let designation = await findOrCreateDesignation(body.designation);
+
+  const user = await User.create({
+    name: req.body.name,
+    email: req.body.email,
+    password: hashedPassword, // Store the hashed password
+    designationId : designation.id
+  });
+
+  if (body.projectId){
+    const projectExists = await Project.findByPk(body.projectId);
+    if (!projectExists) {
+      return { success: false, message: "Project does not exist." };
+    }
+    UserProject.create({
+      projectId : body.projectId,
+      userId : user.id
+    })
+  }
+
+  let token = JWT.sign(
+    { id: user.id, isAdmin: user.isAdmin },
+    "Imran@12"
+  );
+
+  return res.status(201).send({ user });
 });
 
 

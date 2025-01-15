@@ -1,5 +1,5 @@
 import Joi from "joi";
-import { User, Project, UserProjects } from '../db/models.js';
+import { User, Project, UserProject } from '../db/models.js';
 import { asyncMiddleware } from "../middlewares/async.js";
 
 User.associate({ Project });
@@ -67,8 +67,8 @@ export const getProjects = asyncMiddleware(async (req, res) => {
 
         // Helper function to get team size for a project
         const getTeamSize = async (projectId) => {
-            // Get the number of users assigned to this project from the UserProjects table
-            const teamCount = await UserProjects.count({ where: { projectId } });
+            // Get the number of users assigned to this project from the UserProject table
+            const teamCount = await UserProject.count({ where: { projectId } });
             return teamCount; // This will be the team size
         };
 

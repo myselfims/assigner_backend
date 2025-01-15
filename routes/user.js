@@ -6,15 +6,18 @@ import {
   getAllUsers,
   getSelf,
   updateUser,
-  resetPassword
+  resetPassword,
+  updateSelf,
+  addMember
 } from "../controllers/users.js";
 
 const router = express.Router();
 
 router.get("/", getAllUsers);
 router.post("/", createUser);
+router.post("/add-member", addMember);
 
-router.get("/self", auth(), getSelf);
+router.get("/self", auth(), getSelf).patch("/self", auth(), updateSelf)
 router.post("/password/reset", resetPassword)
 router.delete("/:id", auth(true), deleteUser);
 router.patch("/:id", auth(true), updateUser);

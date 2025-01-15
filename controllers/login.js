@@ -21,9 +21,15 @@ export const login = asyncMiddleware( async (req, res)=>{
     if (!check) return res.status(400).send('Invalid credentials!')
 
 
-    let token = JWT.sign({id : user.id,isAdmin : user.isAdmin, isVerified : user.isVerified},'Imran@12')
+    let token = JWT.sign(  {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        roleId: user.roleId,
+        accountTypeId: user.accountTypeId,
+      },'Imran@12')
     console.log(token)
-    res.send({'token' : token,'isAdmin':user.isAdmin,'isVerified':user.isVerified})
+    res.send({'token' : token,'user':user,})
 
 
 })
