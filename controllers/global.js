@@ -1,4 +1,4 @@
-import { AccountType, Role } from "../db/models.js";
+import { AccountType, Industry, Role } from "../db/models.js";
 import { asyncMiddleware } from "../middlewares/async.js";
 
 
@@ -37,6 +37,25 @@ export const getRoles = asyncMiddleware(async (req, res) => {
     } catch (error) {
       console.error(error); // Log the error for debugging
       res.status(500).send("An error occurred while fetching account types.");
+    }
+  });
+
+export const getIndustries = asyncMiddleware(async (req, res) => {
+    try {
+  
+      // Fetch account types associated with the projectId
+      const industries = await Industry.findAll();
+  
+      // Check if any account types were found
+      if (industries.length === 0) {
+        return res.status(404).send("No account industries found.");
+      }
+  
+      // Send the account types to the client
+      res.send(industries);
+    } catch (error) {
+      console.error(error); // Log the error for debugging
+      res.status(500).send("An error occurred while fetching industries.");
     }
   });
   

@@ -1,4 +1,4 @@
-import { Role, AccountType } from './models.js'; // Adjust the import path based on your project structure
+import { Role, AccountType, Industry } from './models.js'; // Adjust the import path based on your project structure
 
 export const seedRoles = async () => {
   try {
@@ -34,3 +34,35 @@ export const seedAccountTypes = async () => {
     console.error('Error populating roles:', error);
   }
 };
+
+export const seedIndustries = async () => {
+  try {
+
+    const industries = [
+      {name: "Software Development", icon: 'FaLaptopCode' },
+      {name: "Marketing", icon: 'BsMegaphoneFill' },
+      {name: "Education", icon: 'FaChalkboardTeacher' },
+      {name: "Healthcare", icon: 'FaHospitalAlt' },
+      {name: "Retail & E-commerce", icon: 'AiFillShop' },
+      {name: "Engineering", icon: 'MdOutlineEngineering' },
+      {name: "Science & Research", icon: 'MdOutlineScience' },
+      {name: "Manufacturing", icon: 'GiFactory' },
+      {name: "Hospitality & Food", icon: 'GiCookingPot' },
+      { name: "Business & Consulting", icon: 'FaBriefcase' },
+    ];
+
+    // Use bulkCreate to insert multiple records
+    await Industry.bulkCreate(industries, { ignoreDuplicates: true });
+
+    console.log('Roles have been populated successfully!');
+  } catch (error) {
+    console.error('Error populating roles:', error);
+  }
+};
+
+
+export const runSeeding = ()=>{
+  seedRoles()
+  seedAccountTypes()
+  seedIndustries()
+}

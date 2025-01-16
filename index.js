@@ -7,11 +7,13 @@ import comment from './routes/comment.js'
 import otp from './routes/otp.js';
 import projects from './routes/projects.js';
 import sprint from './routes/sprint.js';
+import organization from './routes/organization.js';
 import notifications from './routes/notifications.js'
 import global from './routes/global.js'
 import cors from 'cors';
 import { createServer } from 'node:http';
 import { initializeSocket } from './socket/socket.js';
+
 
 
 
@@ -26,6 +28,7 @@ app.use('/api/users',user)
 app.use('/api/login',login)
 app.use('/api/projects',projects)
 app.use('/api/sprints',sprint)
+app.use('/api/organizations',organization)
 app.use('/api/tasks',tasks)
 app.use('/api/comments',comment)
 app.use('/api/otp',otp)

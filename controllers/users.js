@@ -54,6 +54,7 @@ export const deleteUser = asyncMiddleware(async (req, res) => {
 export const updateSelf = asyncMiddleware(async (req, res) => {
   try {
     let user = await User.findByPk(req.user.id);
+    console.log(user)
     if (!user) {
       return res.status(404).send("User not found!");
     }

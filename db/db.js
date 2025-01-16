@@ -1,4 +1,5 @@
 import { Sequelize } from "sequelize";
+import { runSeeding } from "./seedInitial.js";
 
 
 const sequelize = new Sequelize(process.env.DB_DATABASE || 'assigner_db', 'root', process.env.DB_PASSWORD || 'Imran@12', {

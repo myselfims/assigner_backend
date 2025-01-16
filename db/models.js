@@ -1,6 +1,6 @@
 import { DataTypes } from "sequelize";
 import sequelize from "./db.js";
-import { seedAccountTypes, seedRoles } from "./seedInitial.js";
+import { runSeeding, seedAccountTypes, seedRoles } from "./seedInitial.js";
 
 const queryInterface = sequelize.getQueryInterface();
 
@@ -123,6 +123,116 @@ export const AccountType = sequelize.define("AccountType", {
     allowNull: true,
   },
 });
+
+
+export const Attachment = sequelize.define("Attachment", {
+  id: {
+    type: DataTypes.INTEGER,
+    autoIncrement: true,
+    primaryKey: true,
+  },
+  name: {
+    type: DataTypes.STRING,
+    allowNull: false,
+  },
+  type: {
+    type: DataTypes.STRING,
+    allowNull: false,
+  },
+  url: {
+    type: DataTypes.STRING,
+    allowNull: false,
+  },
+  createdAt: {
+    type: DataTypes.DATE,
+    allowNull: false,
+    defaultValue: DataTypes.NOW,
+  },
+  updatedAt: {
+    type: DataTypes.DATE,
+    allowNull: false,
+    defaultValue: DataTypes.NOW,
+  },
+}, {
+  tableName: "attachments", // Optional: Define the table name explicitly
+  timestamps: true, // Automatically adds createdAt and updatedAt fields
+});
+
+// Organization model
+export const Organization = sequelize.define("Organization", {
+  id: {
+    type: DataTypes.INTEGER,
+    autoIncrement: true,
+    primaryKey: true,
+  },
+  name: {
+    type: DataTypes.STRING,
+    allowNull: false,
+  },
+  logo: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    references: {
+      model: "Attachments",
+      key: "id",
+    },
+  },
+  size: {
+    type: DataTypes.STRING,
+    allowNull: false,
+  },
+  website: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+});
+
+// Industry model
+export const Industry = sequelize.define("Industry", {
+  id: {
+    type: DataTypes.INTEGER,
+    autoIncrement: true,
+    primaryKey: true,
+  },
+  name: {
+    type: DataTypes.STRING,
+    allowNull: false,
+  },
+  icon: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+});
+
+// Junction table for many-to-many relationship
+export const OrganizationIndustry = sequelize.define("OrganizationIndustry", {
+  id: {
+    type: DataTypes.INTEGER,
+    autoIncrement: true,
+    primaryKey: true,
+  },
+});
+
+// Define relationships
+Organization.belongsToMany(Industry, {
+  through: OrganizationIndustry,
+  foreignKey: "organizationId",
+  otherKey: "industryId",
+});
+
+Industry.belongsToMany(Organization, {
+  through: OrganizationIndustry,
+  foreignKey: "industryId",
+  otherKey: "organizationId",
+});
+
+
+Organization.belongsTo(Attachment, { foreignKey: "logo", as: "Logo" });
+Attachment.hasOne(Organization, { foreignKey: "logo", as: "Organization" });
+
+
+
+
 
 // Designation Model
 export const Designation = sequelize.define("Designation", {
@@ -397,6 +507,7 @@ export const OTP = sequelize.define("OTP", {
 async function migrate() {
   try {
     await sequelize.sync({ alter: true });
+    // runSeeding()
     console.log("All models were synchronized successfully.");
   } catch (error) {
     console.error("Error during migration:", error);
