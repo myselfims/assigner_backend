@@ -1,0 +1,1 @@
+export const defaultStatuses = ["To-Do", "In Progress", "Done"];

@@ -1,6 +1,7 @@
 import Joi from "joi";
-import { User, Project, UserProject } from '../db/models.js';
+import { User, Project, UserProject, Status } from '../db/models.js';
 import { asyncMiddleware } from "../middlewares/async.js";
+import { defaultStatuses } from "../config/globalConfig.js";
 
 User.associate({ Project });
 Project.associate({ User });
@@ -24,7 +25,7 @@ export const addProject = asyncMiddleware( async (req, res)=>{
     if (!user) return res.status(400).send('User not found! ')
         let body = req.body;
 
-    Project.create({
+    const project = await Project.create({
         name: body.name, // or whatever fields you have in your model
         lead: body.lead,
         teamSize: body.teamSize,
@@ -37,15 +38,39 @@ export const addProject = asyncMiddleware( async (req, res)=>{
         createdBy : req.user.id
         // Add other fields as necessary based on your model
     })
-    .then(project => {
-        res.status(201).json(project); // Respond with the newly created project
-    })
-    .catch(err => {
-        // Handle error
-        res.status(500).json({ error: err.message });
+
+    const statusPromises = defaultStatuses.map((status) =>
+      Status.create({ name: status, projectId: project.id })
+    );
+
+    await Promise.all(statusPromises);
+
+    res.status(201).json({
+      message: "Project created successfully with default statuses.",
+      project,
     });
+
+
     
 })
+
+
+export const getStatuses = async (req, res) => {
+    const { projectId } = req.params;
+  
+    try {
+      const statuses = await Status.findAll({
+        where: { projectId },
+        attributes: ["id", "name"],
+      });
+  
+      res.status(200).json(statuses);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ message: "Internal server error." });
+    }
+  };
+  
 
 
 

@@ -354,6 +354,30 @@ export const Project = sequelize.define("Project", {
   },
 });
 
+export const Status = sequelize.define("Status", {
+  id: {
+    type: DataTypes.INTEGER,
+    autoIncrement: true,
+    primaryKey: true,
+  },
+  name: {
+    type: DataTypes.STRING,
+    allowNull: false,
+  },
+  projectId: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    references: {
+      model: "Projects",
+      key: "id",
+    },
+    onDelete: "CASCADE",
+  },
+});
+
+Project.hasMany(Status, { foreignKey: "projectId", onDelete: "CASCADE" });
+
+
 User.associate = (models) => {
   User.hasMany(models.Project, {
     foreignKey: "createdBy",

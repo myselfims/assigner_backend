@@ -9,9 +9,6 @@ const auth = (admin = false) => {
 
     try {
       const user = JWT.verify(token, "Imran@12"); // Use environment variable for secret key
-      if (admin && !user.isAdmin) {
-        return res.status(403).send("Unauthorized!");
-      }
       req.user = user;
       console.log("user is " , user)
       next();
