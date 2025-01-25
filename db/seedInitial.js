@@ -1,4 +1,6 @@
-import { Role, AccountType, Industry } from './models.js'; // Adjust the import path based on your project structure
+import { AccountType } from './accountType.js';
+import { Role } from './roleAndDesignation.js';
+import { Industry } from './industry.js';
 
 export const seedRoles = async () => {
   try {

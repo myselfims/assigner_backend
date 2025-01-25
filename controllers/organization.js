@@ -1,6 +1,7 @@
 import Joi from "joi";
 import { asyncMiddleware } from "../middlewares/async.js";
-import { Organization, Industry, OrganizationIndustry } from "../db/models.js";
+import { Organization } from "../db/organization.js";
+import { Industry } from "../db/industry.js";
 
 export const createOrganization = asyncMiddleware(async (req, res) => {
   // Validate the request body

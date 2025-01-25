@@ -1,4 +1,6 @@
-import { Task, User } from "../db/models.js";
+
+import { Task } from "../db/task.js";
+import { User } from "../db/user.js";
 import { asyncMiddleware } from "../middlewares/async.js";
 import Joi from "joi";
 import { transporter } from "../smtp.js";

@@ -1,5 +1,7 @@
-import { AccountType, Industry, Role } from "../db/models.js";
 import { asyncMiddleware } from "../middlewares/async.js";
+import { AccountType } from "../db/accountType.js";
+import { Industry } from "../db/industry.js";
+import { Role } from "../db/roleAndDesignation.js";
 
 
 export const getAccountTypes = asyncMiddleware(async (req, res) => {

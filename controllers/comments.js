@@ -1,4 +1,5 @@
-import { Comment, User } from "../db/models.js";
+import { User } from "../db/user.js";
+import { Comment } from "../db/commectAndOtp.js";
 import { asyncMiddleware } from "../middlewares/async.js";
 import Joi from "joi";
 

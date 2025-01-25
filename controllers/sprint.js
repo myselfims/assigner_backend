@@ -1,4 +1,5 @@
-import { Sprint, Task } from "../db/models.js";
+import { Sprint } from "../db/sprint.js";
+import { Task } from "../db/task.js";
 import { asyncMiddleware } from "../middlewares/async.js";
 
 // Create a new sprint

@@ -1,5 +1,6 @@
 import { asyncMiddleware } from "../middlewares/async.js";
-import { OTP, User } from "../db/models.js";
+import { OTP } from "../db/commectAndOtp.js";
+import { User } from "../db/user.js";
 import { generate } from "otp-generator";
 import { transporter } from "../smtp.js";
 import { templates } from "../config/emailTemplates.js";

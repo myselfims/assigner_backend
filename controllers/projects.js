@@ -1,10 +1,12 @@
 import Joi from "joi";
-import { User, Project, UserProject, Status } from '../db/models.js';
+import { User } from "../db/user.js";
+import { Project } from "../db/project.js";
+import { UserProject } from "../db/userProject.js";
+import { Status } from "../db/status.js";
 import { asyncMiddleware } from "../middlewares/async.js";
 import { defaultStatuses } from "../config/globalConfig.js";
+import { where } from "sequelize";
 
-User.associate({ Project });
-Project.associate({ User });
 
 export const addProject = asyncMiddleware( async (req, res)=>{
     const schema = Joi.object({
@@ -70,25 +72,128 @@ export const getStatuses = async (req, res) => {
       res.status(500).json({ message: "Internal server error." });
     }
   };
+  export const updateStatuses = async (req, res) => {
+    const { projectId } = req.params;
   
+    try {
+      const statuses = req.body.statuses;
+  
+      if (!Array.isArray(statuses)) {
+        return res.status(400).json({ message: "Invalid statuses format." });
+      }
+  
+      // Iterate over statuses and handle updates or creations
+      for (let status of statuses) {
+        if (status.id) {
+          // Update existing status
+          const existingStatus = await Status.findOne({ where: { id: status.id, projectId } });
+  
+          if (existingStatus) {
+            await existingStatus.update({ name: status.name, isDefault: status.isDefault });
+          } else {
+            return res.status(404).json({ message: `Status with id ${status.id} not found.` });
+          }
+        } else {
+          // Create new status if it doesn't have an ID
+          await Status.create({ name: status.name, projectId });
+        }
+      }
+  
+      // Fetch updated statuses to return
+      const updatedStatuses = await Status.findAll({ where: { projectId } });
+  
+      res.status(200).json(updatedStatuses);
+    } catch (err) {
+      console.error("Error updating statuses:", err);
+      res.status(500).json({ message: "Internal server error." });
+    }
+  };
+  
+  export const getTeamMembers = asyncMiddleware(async (req, res) => {
+    try {
+      const { projectId } = req.params;
+  
+      // Fetch user projects and include the associated user object
+      const userProjects = await UserProject.findAll({
+        where: { projectId, status:'active' },
+        include: [
+          {
+            model: User, // The associated User model
+            as: 'user', // Alias used for the association
+            attributes: { exclude: ['password'] }, // Exclude sensitive fields like password
+          },
+        ],
+        raw: true, // Flatten the result
+        nest: false, // Avoid nested objects
+      });
 
+      console.log(userProjects)
+
+      const result = userProjects.map((item) => {
+        const flattenedItem = { ...item }; // Copy all keys
+        // Merge keys prefixed with `user.` into the main object
+        Object.keys(flattenedItem).forEach((key) => {
+          if (key.startsWith('user.')) {
+            const newKey = key.replace('user.', ''); // Remove `user.` prefix
+            flattenedItem[newKey] = flattenedItem[key]; // Add new key
+            delete flattenedItem[key]; // Remove old `user.` key
+          }
+        });
+        return flattenedItem;
+      });
+  
+      console.log('User projects are:', result);
+      res.status(200).json(result);
+    } catch (error) {
+      console.error('Error fetching team members:', error);
+      res.status(500).json({ error: 'An error occurred while fetching team members' });
+    }
+  });
+
+
+  export const updateMember = asyncMiddleware(async (req, res) => {
+    try {
+      const { projectId, userId } = req.params;
+      const {roleId} = req.body;
+  
+      // Fetch user projects and include the associated user object
+      const userProject = await UserProject.findOne({
+        where: { projectId, userId }
+      });
+
+      userProject.status = 'active'
+      userProject.roleId = parseInt(roleId);
+      userProject.save()
+      
+      res.status(200).json(userProject);
+    } catch (error) {
+      console.error('Error fetching team members:', error);
+      res.status(500).json({ error: 'An error occurred while fetching team members' });
+    }
+  });
+  
 
 
 export const getProjects = asyncMiddleware(async (req, res) => {
     try {
         const userId = req.user.id;
 
-        const userProjects = await User.findOne({
-            where: { id: userId },
-            include: [
-                { model: Project, as: 'createdProjects' }, // Projects created by the user
-                { model: Project, as: 'assignedProjects' }, // Projects assigned to the user
-            ],
+        const createdProjects = await Project.findAll({
+            where: { createdBy : userId },
         });
-
-        if (!userProjects) {
+        const assignedProjects = await UserProject.findAll({
+          where: { userId },
+          include: {
+            model: Project,
+            as : 'project'
+          },
+        });
+        
+        if (!createdProjects) {
             return res.status(404).json({ message: 'No projects found for this user.' });
         }
+
+        console.log(createdProjects)
 
         // Helper function to get team size for a project
         const getTeamSize = async (projectId) => {
@@ -99,7 +204,7 @@ export const getProjects = asyncMiddleware(async (req, res) => {
 
         // Combine created and assigned projects
         const projects = [
-            ...userProjects.createdProjects.map(async (project) => {
+            ...createdProjects.map(async (project) => {
                 const teamSize = await getTeamSize(project.id);
                 return {
                     ...project.toJSON(), // Converts sequelize model to plain object
@@ -107,7 +212,7 @@ export const getProjects = asyncMiddleware(async (req, res) => {
                     teamSize: teamSize + 1, // Add 1 for the creator
                 };
             }),
-            ...userProjects.assignedProjects.map(async (project) => {
+            ...assignedProjects.map(async ({project}) => {
                 const teamSize = await getTeamSize(project.id);
                 return {
                     ...project.toJSON(),

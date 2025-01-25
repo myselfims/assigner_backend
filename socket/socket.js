@@ -1,5 +1,6 @@
 import { Server } from "socket.io";
-import { Comment,User } from "../db/models.js";
+import { Comment } from "../db/commectAndOtp.js";
+import { User } from "../db/user.js";
 import { schema } from "../controllers/comments.js";
 
 export const initializeSocket = (httpServer) => {

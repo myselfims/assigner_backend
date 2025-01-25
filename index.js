@@ -13,6 +13,7 @@ import global from './routes/global.js'
 import cors from 'cors';
 import { createServer } from 'node:http';
 import { initializeSocket } from './socket/socket.js';
+import './db/models.js'
 
 
 

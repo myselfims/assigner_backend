@@ -1,5 +1,5 @@
 import Joi from "joi";
-import { User } from '../db/models.js';
+import { User } from "../db/user.js";
 import JWT from "jsonwebtoken";
 import bcrypt from 'bcrypt'
 import { asyncMiddleware } from "../middlewares/async.js";

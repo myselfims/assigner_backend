@@ -1,5 +1,8 @@
 import { asyncMiddleware } from "../middlewares/async.js";
-import { Designation, User, UserProject, Project } from "../db/models.js";
+import { Designation } from "../db/roleAndDesignation.js";
+import { User } from "../db/user.js";
+import { UserProject } from "../db/userProject.js";
+import { Project } from "../db/project.js";
 import Joi from "joi";
 import bcrypt from "bcrypt";
 import JWT from "jsonwebtoken";
@@ -194,7 +197,9 @@ export const addMember = asyncMiddleware(async (req, res) => {
     }
     UserProject.create({
       projectId : body.projectId,
-      userId : user.id
+      userId : user.id,
+      roleId : body.roleId,
+      status : 'active'
     })
   }
 
