@@ -89,6 +89,10 @@ UserProject.belongsTo(Project, {
   as: "project", // Alias for the association
 });
 
+Task.belongsTo(User, { as: "assignedBy", foreignKey: "assignedById" });
+Task.belongsTo(User, { as: "assignedTo", foreignKey: "assignedToId" });
+
+
 
 // Use migrations for schema changes instead of sync({ alter: true })
 async function migrate() {
@@ -102,4 +106,4 @@ async function migrate() {
   }
 }
 
-// migrate();
+migrate();

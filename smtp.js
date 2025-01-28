@@ -10,3 +10,15 @@ export const transporter = nodemailer.createTransport({
   },
   secure: true,
 });
+
+
+export const sendEmail = async (mailData) => {
+  try {
+    await transporter.sendMail(mailData);
+    console.log("Email sent successfully!");
+    return true;
+  } catch (error) {
+    console.error("Error sending email:", error.message);
+    throw error;
+  }
+};

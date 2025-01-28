@@ -1,5 +1,6 @@
 import { Sprint } from "../db/sprint.js";
 import { Task } from "../db/task.js";
+import { User } from "../db/user.js";
 import { asyncMiddleware } from "../middlewares/async.js";
 
 // Create a new sprint
@@ -50,7 +51,18 @@ export const deleteSprint = asyncMiddleware(async (req, res) => {
 export const getSprintTasks = asyncMiddleware(async (req, res) => {
   try {
     const { id } = req.params;
-    const tasks = await Task.findAll({ where: { sprintId: id },  order: [['index', 'ASC']] });  // Await the result from Task.findAll
+    const tasks = await Task.findAll({
+      where: { sprintId: id },
+      order: [["index", "ASC"]],
+      include: [
+        {
+          model: User,
+          as: "assignedBy", // Matches the alias defined in the association
+          attributes: ["id", "name"], // Only fetch `id` and `name` from the User table
+        },
+      ],
+    });
+    
 
     // Check if tasks were found
     if (!tasks.length) {

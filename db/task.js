@@ -21,7 +21,7 @@ export const Task = sequelize.define("Task", {
       allowNull: false,
     },
     status: {
-      type: DataTypes.ENUM("To-Do", "Assigned", "In Progress", "Done"),
+      type: DataTypes.STRING,
       allowNull: false,
       defaultValue: "To-Do",
     },

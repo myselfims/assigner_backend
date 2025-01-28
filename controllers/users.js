@@ -7,6 +7,8 @@ import Joi from "joi";
 import bcrypt from "bcrypt";
 import JWT from "jsonwebtoken";
 import { Sequelize } from "sequelize";
+import { sendEmail } from "../smtp.js";
+import { generateEmailContent, templates } from "../config/emailTemplates.js";
 
 
 export const getAllUsers = asyncMiddleware(async (req, res) => {
@@ -189,10 +191,10 @@ export const addMember = asyncMiddleware(async (req, res) => {
     password: hashedPassword, // Store the hashed password
     designationId : designation.id
   });
-
+  let project
   if (body.projectId){
-    const projectExists = await Project.findByPk(body.projectId);
-    if (!projectExists) {
+    project = await Project.findByPk(body.projectId);
+    if (!project) {
       return { success: false, message: "Project does not exist." };
     }
     UserProject.create({
@@ -207,6 +209,29 @@ export const addMember = asyncMiddleware(async (req, res) => {
     { id: user.id, isAdmin: user.isAdmin },
     "Imran@12"
   );
+
+  const values = {
+    userName : user.name,
+    projectName : project.name,
+    activationLink : 'https://google.com/'
+  }
+  
+  const template = generateEmailContent(templates.userOnboard, values)
+
+    const mailData = {
+      from:'riseimstechnologies@gmail.com',
+      to: user.email, // list of receivers
+      subject: template.subject,
+      text: "",
+      html: template.body,
+    };
+
+    let emailSent = await sendEmail(mailData)
+    if (emailSent) {
+      console.log("Email sent success")
+    } else {
+      console.log('Error in email sending.')
+    }
 
   return res.status(201).send({ user });
 });
