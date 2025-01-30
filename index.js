@@ -13,6 +13,7 @@ import global from './routes/global.js'
 import cors from 'cors';
 import { createServer } from 'node:http';
 import { initializeSocket } from './socket/socket.js';
+import chat from './routes/chat.js'
 import './db/models.js'
 
 
@@ -34,7 +35,8 @@ app.use('/api/tasks',tasks)
 app.use('/api/comments',comment)
 app.use('/api/otp',otp)
 app.use('/api/notifications',notifications)
-app.use('/api/global',global)
+app.use('/api/global',global);
+app.user('/api/chat', chat)
 
 const PORT = process.env.PORT || 3000
 

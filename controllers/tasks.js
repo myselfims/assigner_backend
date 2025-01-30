@@ -9,7 +9,7 @@ let schema = Joi.object({
   sprintId : Joi.number(),
   projectId : Joi.number().required(),
   title: Joi.string().min(2).required(),
-  description: Joi.string().required(),
+  description: Joi.string(),
   deadline: Joi.date().required(),
   assignedToId: Joi.number().required(),
 });

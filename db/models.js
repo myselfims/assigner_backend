@@ -106,4 +106,4 @@ async function migrate() {
   }
 }
 
-migrate();
+// migrate();
