@@ -11,6 +11,7 @@ import { Project } from "./project.js";
 import { Task } from "./task.js";
 import { Status } from "./status.js";
 import { UserProject } from "./userProject.js";
+import { Message } from "./message.js";
 
 // Define relationships directly on models
 Organization.belongsToMany(Industry, {
@@ -92,6 +93,8 @@ UserProject.belongsTo(Project, {
 Task.belongsTo(User, { as: "assignedBy", foreignKey: "assignedById" });
 Task.belongsTo(User, { as: "assignedTo", foreignKey: "assignedToId" });
 
+Message.belongsTo(User, { foreignKey: "senderId", as: "sender" });
+User.hasMany(Message, { foreignKey: "senderId" });
 
 
 // Use migrations for schema changes instead of sync({ alter: true })
