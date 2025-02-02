@@ -12,6 +12,7 @@ import { Task } from "./task.js";
 import { Status } from "./status.js";
 import { UserProject } from "./userProject.js";
 import { Message } from "./message.js";
+import { PinnedMessage } from "./pinnedMessage.js";
 
 // Define relationships directly on models
 Organization.belongsToMany(Industry, {
@@ -96,6 +97,12 @@ Task.belongsTo(User, { as: "assignedTo", foreignKey: "assignedToId" });
 Message.belongsTo(User, { foreignKey: "senderId", as: "sender" });
 User.hasMany(Message, { foreignKey: "senderId" });
 
+
+// Associations
+PinnedMessage.belongsTo(Message, { foreignKey: "messageId" });
+PinnedMessage.belongsTo(User, { foreignKey: "userId" }); // User who pinned the message
+PinnedMessage.belongsTo(Project, { foreignKey: "projectId" }); // For project messages
+PinnedMessage.belongsTo(User, { foreignKey: "receiverId", as: "Receiver" }); // For direct messages
 
 // Use migrations for schema changes instead of sync({ alter: true })
 async function migrate() {
