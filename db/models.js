@@ -85,6 +85,17 @@ UserProject.belongsTo(User, {
   as: "user", // Alias for the association
 });
 
+UserProject.belongsTo(Role, {
+  foreignKey: "roleId",
+  as: "role", // Alias for the association
+});
+
+Role.hasMany(UserProject, {
+  foreignKey: "roleId",
+  as: "userProjects", // Alias for the association
+});
+
+
 // UserProject belongs to one Project
 UserProject.belongsTo(Project, {
   foreignKey: "projectId",
@@ -116,4 +127,6 @@ async function migrate() {
   }
 }
 
-// migrate();
+migrate(
+
+);

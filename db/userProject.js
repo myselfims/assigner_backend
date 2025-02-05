@@ -24,8 +24,12 @@ export const UserProject = sequelize.define("UserProject", {
       },
     },
     roleId: {
-      type: DataTypes.STRING,
-      allowNull: true,
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      references: {
+        model: "Roles",
+        key: "id",
+      },
     },
     status: {
       type: DataTypes.STRING,

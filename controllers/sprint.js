@@ -60,6 +60,11 @@ export const getSprintTasks = asyncMiddleware(async (req, res) => {
           as: "assignedBy", // Matches the alias defined in the association
           attributes: ["id", "name"], // Only fetch `id` and `name` from the User table
         },
+        {
+          model: User,
+          as: "assignedTo", // Matches the alias defined in the association
+          attributes: ["id", "name"], // Only fetch `id` and `name` from the User table
+        },
       ],
     });
     

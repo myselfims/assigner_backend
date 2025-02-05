@@ -6,6 +6,7 @@ import { Status } from "../db/status.js";
 import { asyncMiddleware } from "../middlewares/async.js";
 import { defaultStatuses } from "../config/globalConfig.js";
 import { where } from "sequelize";
+import { Role } from "../db/roleAndDesignation.js";
 
 
 export const addProject = asyncMiddleware( async (req, res)=>{
@@ -122,6 +123,10 @@ export const getStatuses = async (req, res) => {
             as: 'user', // Alias used for the association
             attributes: { exclude: ['password'] }, // Exclude sensitive fields like password
           },
+          {
+            model: Role, // The associated User model
+            as: 'role', // Alias used for the association
+          },
         ],
         raw: true, // Flatten the result
         nest: false, // Avoid nested objects
@@ -231,4 +236,46 @@ export const getProjects = asyncMiddleware(async (req, res) => {
         console.error(err);
         res.status(500).json({ error: err.message });
     }
+});
+
+export const getSingleProject = asyncMiddleware(async (req, res) => {
+  try {
+      const userId = req.user.id;
+      const { projectId } = req.params;
+
+      // Check if the user is the creator of the project
+      const createdProject = await Project.findOne({
+          where: { id: projectId, createdBy: userId },
+      });
+
+      // Check if the user is assigned to the project
+      const assignedProject = await UserProject.findOne({
+          where: { userId, projectId },
+          include: {
+              model: Project,
+              as: 'project',
+          },
+      });
+
+      // If the user has no access to the project
+      if (!createdProject && !assignedProject) {
+          return res.status(403).json({ message: 'Access denied to this project.' });
+      }
+
+      // Get the project details
+      const project = createdProject ? createdProject : assignedProject.project;
+
+      // Get team size for the project
+      const teamSize = await UserProject.count({ where: { projectId } });
+
+      // Respond with project details
+      res.status(200).json({
+          ...project.toJSON(),
+          role: createdProject ? 'Created by You' : 'Assigned to You',
+          teamSize: createdProject ? teamSize + 1 : teamSize,
+      });
+  } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: err.message });
+  }
 });
