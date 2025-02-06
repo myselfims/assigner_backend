@@ -12,8 +12,12 @@ export const Project = sequelize.define("Project", {
     allowNull: false,
   },
   lead: {
-    type: DataTypes.STRING,
-    allowNull: false,
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    references: {
+      model: "Users", // Table name for User model
+      key: "id",
+    },
   },
   startDate: {
     type: DataTypes.DATE,

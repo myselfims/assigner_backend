@@ -185,6 +185,11 @@ export const getProjects = asyncMiddleware(async (req, res) => {
 
         const createdProjects = await Project.findAll({
             where: { createdBy : userId },
+            include: {
+              model: User,
+              as: "leadUser", // Fetch the lead details
+              attributes: ["id", "name", "email"], // Only select necessary fields
+            },
         });
         const assignedProjects = await UserProject.findAll({
           where: { userId },

@@ -3,7 +3,6 @@ import { Message } from "../db/message.js";
 import { User } from "../db/user.js";
 import { PinnedMessage } from "../db/pinnedMessage.js";
 
-
 export const sendMessage = asyncMiddleware(async (req, res) => {
   try {
     const { type, projectId, receiverId, content } = req.body;
@@ -12,7 +11,9 @@ export const sendMessage = asyncMiddleware(async (req, res) => {
     if (!content)
       return res.status(400).json({ error: "Message cannot be empty" });
     if (!projectId && !receiverId)
-      return res.status(400).json({ error: "Project or Receiver id is required" });
+      return res
+        .status(400)
+        .json({ error: "Project or Receiver id is required" });
 
     // Save the message to the database
     let newMessage = await Message.create({
@@ -32,12 +33,11 @@ export const sendMessage = asyncMiddleware(async (req, res) => {
         },
       ],
     });
-    
 
     // Emit the message to the relevant room(s) via WebSocket
     if (projectId) {
       // If the message is related to a project, emit it to the project room
-      console.log('sending message to socket')
+      console.log("sending message to socket");
       req.io.to(`chat-${projectId}`).emit("message", newMessage);
     } else if (receiverId) {
       // If the message is a direct message, emit it to the user room
@@ -55,8 +55,10 @@ export const getProjectMessage = asyncMiddleware(async (req, res) => {
     const { projectId } = req.params;
     const senderId = req.user.id;
 
-    if (!projectId)
+    if (!projectId) {
       return res.status(400).json({ error: "ProjectId cannot be empty" });
+    }
+
     const messages = await Message.findAll({
       where: { projectId },
       include: [
@@ -65,35 +67,60 @@ export const getProjectMessage = asyncMiddleware(async (req, res) => {
           as: "sender", // Should match the alias in association
           attributes: ["id", "name", "email", "avatar"], // Include only necessary fields
         },
+        {
+          model: PinnedMessage,
+          as: 'pinned', // Assuming you've set up an alias for PinnedMessage in the Message model
+          where: { userId: senderId }, // Check if the current user has pinned the message
+          required: false, // Use left join to still return messages even if not pinned
+          attributes: ['id'], // We just need the id to confirm it's pinned
+        }
       ],
     });
 
-    res.status(200).json(messages);
+    // Format the response to include pinned status
+    const formattedMessages = messages.map((message) => ({
+      id: message.id,
+      content: message.content,
+      sender: message.sender,
+      senderId: message.sender.id,
+      pinned: message.pinned ? true : false, // Check if the message is pinned for the user
+      createdAt: message.createdAt,
+      updatedAt: message.updatedAt,
+    }));
+
+    res.status(200).json(formattedMessages);
   } catch (error) {
-    console.log(error)
+    console.log(error);
     res.status(500).json({ error: error.message });
   }
 });
 
+
 export const deleteMessage = asyncMiddleware(async (req, res) => {
   try {
     const { messageId } = req.params;
-    console.log('deleting the message where messageId is :', messageId)
+    console.log("deleting the message where messageId is :", messageId);
     // Check if messageId is provided
     if (!messageId) {
-      return res.status(400).json({ success: false, message: "Message ID is required" });
+      return res
+        .status(400)
+        .json({ success: false, message: "Message ID is required" });
     }
 
     // Find the message
     const message = await Message.findByPk(messageId);
     if (!message) {
-      return res.status(404).json({ success: false, message: "Message not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Message not found" });
     }
 
     // Delete the message
-    message.destroy()
+    message.destroy();
 
-    return res.status(200).json({ success: true, message: "Message deleted successfully" });
+    return res
+      .status(200)
+      .json({ success: true, message: "Message deleted successfully" });
   } catch (error) {
     console.error("Error deleting message:", error);
     res.status(500).json({ success: false, message: "Internal server error" });
@@ -102,8 +129,8 @@ export const deleteMessage = asyncMiddleware(async (req, res) => {
 
 export const getPinnedMessages = asyncMiddleware(async (req, res) => {
   try {
-    const { userId } = req; // Assuming userId is extracted from auth middleware
-    const { projectId, receiverId } = req.body;
+    const userId = req.user.id; // Extract userId from auth middleware
+    const { projectId, receiverId } = req.query; // Get from query params
 
     let whereCondition = { userId };
 
@@ -112,44 +139,74 @@ export const getPinnedMessages = asyncMiddleware(async (req, res) => {
     } else if (receiverId) {
       whereCondition.receiverId = receiverId; // Fetch receiver-specific pinned messages
     } else {
-      return res.status(400).json({ message: "Either projectId or receiverId is required." });
+      return res
+        .status(400)
+        .json({ message: "Either projectId or receiverId is required." });
     }
 
     const pinnedMessages = await PinnedMessage.findAll({
       where: whereCondition,
-      include: [{ model: Message }], // Include full message details
+      include: [
+        {
+          model: Message,
+          as: "message",
+          include: [
+            {
+              model: User,
+              as: "sender", // Assuming a 'sender' alias exists for User in the Message model
+              attributes: ["id","name"], // Only include the sender's name
+            },
+          ],
+        },
+      ], // Include full message details
     });
 
-    res.status(200).json({ success: true, pinnedMessages });
+    res.status(200).json(pinnedMessages);
   } catch (error) {
-    res.status(500).json({ success: false, message: "Server error", error: error.message });
+    res
+      .status(500)
+      .json({ success: false, message: "Server error", error: error.message });
   }
 });
 
 export const pinMessage = asyncMiddleware(async (req, res) => {
   try {
-    console.log('Pinned message called')
+    console.log("Pinned message called");
     const userId = req.user.id; // Assuming userId is extracted from auth middleware
     const { messageId } = req.params;
     const { projectId, receiverId } = req.body;
 
-    console.log("Pinning message:", { userId, messageId, projectId, receiverId });
+    console.log("Pinning message:", {
+      userId,
+      messageId,
+      projectId,
+      receiverId,
+    });
 
     // Validate input
     if (!messageId) {
-      return res.status(400).json({ success: false, message: "Message ID is required" });
+      return res
+        .status(400)
+        .json({ success: false, message: "Message ID is required" });
     }
     if (!projectId && !receiverId) {
-      return res.status(400).json({ success: false, message: "Either projectId or receiverId is required" });
+      return res
+        .status(400)
+        .json({
+          success: false,
+          message: "Either projectId or receiverId is required",
+        });
     }
 
     // Check if the message exists
     const message = await Message.findByPk(messageId);
     if (!message) {
-      return res.status(404).json({ success: false, message: "Message not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Message not found" });
     }
 
-    // Ensure uniqueness (prevent duplicate pins)
+    // Check if the message is already pinned
     const existingPin = await PinnedMessage.findOne({
       where: {
         userId,
@@ -160,10 +217,14 @@ export const pinMessage = asyncMiddleware(async (req, res) => {
     });
 
     if (existingPin) {
-      return res.status(400).json({ success: false, message: "Message is already pinned" });
+      // If the message is already pinned, delete it (unpin the message)
+      await existingPin.destroy();
+      return res
+        .status(200)
+        .json({ success: true, message: "Message unpinned successfully" });
     }
 
-    // Create a new pinned message entry
+    // Create a new pinned message entry if not already pinned
     await PinnedMessage.create({
       userId,
       messageId,
@@ -171,10 +232,11 @@ export const pinMessage = asyncMiddleware(async (req, res) => {
       receiverId: receiverId || null, // Store receiverId only if provided
     });
 
-    return res.status(201).json({ success: true, message: "Message pinned successfully" });
+    return res
+      .status(201)
+      .json({ success: true, message: "Message pinned successfully" });
   } catch (error) {
     console.error("Error pinning message:", error);
     res.status(500).json({ success: false, message: "Internal server error" });
   }
 });
-

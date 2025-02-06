@@ -46,6 +46,16 @@ User.hasMany(Project, {
   as: "createdProjects",
 });
 
+User.hasMany(Project, {
+  foreignKey: "lead",
+  as: "leadUser",
+});
+
+Project.belongsTo(User, {
+  foreignKey: "lead",
+  as: "leadUser",
+});
+
 Project.belongsTo(User, {
   foreignKey: "createdBy",
   as: "creator",
@@ -110,7 +120,8 @@ User.hasMany(Message, { foreignKey: "senderId" });
 
 
 // Associations
-PinnedMessage.belongsTo(Message, { foreignKey: "messageId" });
+Message.hasMany(PinnedMessage, { foreignKey: "messageId", as: "pinned" });
+PinnedMessage.belongsTo(Message, { foreignKey: "messageId", as:"message" });
 PinnedMessage.belongsTo(User, { foreignKey: "userId" }); // User who pinned the message
 PinnedMessage.belongsTo(Project, { foreignKey: "projectId" }); // For project messages
 PinnedMessage.belongsTo(User, { foreignKey: "receiverId", as: "Receiver" }); // For direct messages
@@ -127,6 +138,5 @@ async function migrate() {
   }
 }
 
-migrate(
+// migrate();
 
-);
