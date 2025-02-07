@@ -1,5 +1,7 @@
 export const templates = {
-  otpTemplate: `
+  otpTemplate: {
+    subject : "Verify your account",
+    body : `
 
         <!DOCTYPE html>
 <html lang="en">
@@ -85,7 +87,7 @@ export const templates = {
 </html>
 
     
-    `,
+    `},
 
   userOnboard:
   {

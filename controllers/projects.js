@@ -176,6 +176,27 @@ export const getStatuses = async (req, res) => {
       res.status(500).json({ error: 'An error occurred while fetching team members' });
     }
   });
+
+  export const getMemberRole = asyncMiddleware(async (req, res) => {
+    try {
+      const userId = req.user.id;
+      const {projectId} = req.params;
+  
+      // Fetch user projects and include the associated user object
+      const userProject = await UserProject.findOne({
+        where: { projectId, userId },
+        include : {
+          model: Role, // The associated User model
+          as: 'role', // Alias used for the association
+        },
+      });
+      
+      res.status(200).json(userProject);
+    } catch (error) {
+      console.error('Error fetching team members:', error);
+      res.status(500).json({ error: 'An error occurred while fetching team members' });
+    }
+  });
   
 
 
