@@ -3,7 +3,8 @@ import { Task } from "../db/task.js";
 import { User } from "../db/user.js";
 import { asyncMiddleware } from "../middlewares/async.js";
 import Joi from "joi";
-import { transporter } from "../smtp.js";
+import { transporter, sendEmail } from "../smtp.js";
+import { generateEmailContent } from "../config/emailTemplates.js";
 
 let schema = Joi.object({
   sprintId : Joi.number(),
@@ -54,13 +55,11 @@ export const createTask = asyncMiddleware(async (req, res) => {
     html: `<b>Hey there! </b><br>You have a new task.<br/><hr/>Check here https://assinger.riseimstechnologies.com/. Title : ${task.title}`,
   };
 
-  transporter.sendMail(mailData, (error, info) => {
-    if (error) {
-      console.log(error);
-    } else {
-      console.log(info);
-    }
-  });
+  const emailContent = generateEmailContent("assignedTaskTemplate", {userName : user.name, projectName : 'null', taskName : task.title, dueDate : task.deadline, assignedBy : creater.name, taskLink : 'http://google.com/'})
+  console.log(user.email)
+  sendEmail(user.email, emailContent.subject, emailContent.body).then((res)=>{
+    console.log("mail sent")
+  })
 
   res.send(task);
 });

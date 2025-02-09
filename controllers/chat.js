@@ -2,6 +2,7 @@ import { asyncMiddleware } from "../middlewares/async.js";
 import { Message } from "../db/message.js";
 import { User } from "../db/user.js";
 import { PinnedMessage } from "../db/pinnedMessage.js";
+import { Sequelize } from "sequelize";
 
 export const sendMessage = asyncMiddleware(async (req, res) => {
   try {
@@ -50,6 +51,8 @@ export const sendMessage = asyncMiddleware(async (req, res) => {
   }
 });
 
+
+
 export const getProjectMessage = asyncMiddleware(async (req, res) => {
   try {
     const { projectId } = req.params;
@@ -64,36 +67,44 @@ export const getProjectMessage = asyncMiddleware(async (req, res) => {
       include: [
         {
           model: User,
-          as: "sender", // Should match the alias in association
-          attributes: ["id", "name", "email", "avatar"], // Include only necessary fields
+          as: "sender",
+          attributes: ["id", "name", "email", "avatar"],
         },
-        {
-          model: PinnedMessage,
-          as: 'pinned', // Assuming you've set up an alias for PinnedMessage in the Message model
-          where: { userId: senderId }, // Check if the current user has pinned the message
-          required: false, // Use left join to still return messages even if not pinned
-          attributes: ['id'], // We just need the id to confirm it's pinned
-        }
       ],
+      attributes: {
+        include: [
+          [
+            Sequelize.literal(`(
+              SELECT COUNT(*)
+              FROM \`PinnedMessages\` AS \`pinned\`
+              WHERE \`pinned\`.\`messageId\` = \`Message\`.\`id\`
+              AND \`pinned\`.\`userId\` = ${senderId}
+            ) > 0`),
+            "pinned",
+          ],
+        ],
+      },
     });
 
-    // Format the response to include pinned status
+    // Format response
     const formattedMessages = messages.map((message) => ({
       id: message.id,
       content: message.content,
       sender: message.sender,
       senderId: message.sender.id,
-      pinned: message.pinned ? true : false, // Check if the message is pinned for the user
+      pinned: message.getDataValue("pinned"), // Directly use the calculated value
       createdAt: message.createdAt,
       updatedAt: message.updatedAt,
     }));
 
     res.status(200).json(formattedMessages);
   } catch (error) {
-    console.log(error);
+    console.error(error);
     res.status(500).json({ error: error.message });
   }
 });
+
+
 
 
 export const deleteMessage = asyncMiddleware(async (req, res) => {
