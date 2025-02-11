@@ -9,6 +9,8 @@ import JWT from "jsonwebtoken";
 import { Sequelize } from "sequelize";
 import { sendEmail } from "../smtp.js";
 import { generateEmailContent, templates } from "../config/emailTemplates.js";
+import Workspace from "../db/workspace.js";
+import { UserWorkspace } from "../db/userWorkspace.js";
 
 
 export const getAllUsers = asyncMiddleware(async (req, res) => {
@@ -171,7 +173,8 @@ export const addMember = asyncMiddleware(async (req, res) => {
     name: Joi.string().min(5).max(50).required(),
     email: Joi.string().min(5).max(255).required().email(),
     designation: Joi.string(),
-    projectId : Joi.number()
+    projectId : Joi.number(), 
+    workspaceId : Joi.number().required(), 
   });
 
   let { error } = schema.validate(req.body);
@@ -200,7 +203,19 @@ export const addMember = asyncMiddleware(async (req, res) => {
     UserProject.create({
       projectId : body.projectId,
       userId : user.id,
-      roleId : body.roleId,
+      roleId :1,
+      status : 'active'
+    })
+  }
+  if (body.workspaceId){
+    let workspace = await Workspace.findByPk(body.workspaceId);
+    if (!workspace) {
+      return { success: false, message: "Workspace does not exist." };
+    }
+    UserWorkspace.create({
+      workspaceId : body.workspaceId,
+      userId : user.id,
+      roleId : 1,
       status : 'active'
     })
   }
@@ -210,28 +225,28 @@ export const addMember = asyncMiddleware(async (req, res) => {
     "Imran@12"
   );
 
-  const values = {
-    userName : user.name,
-    projectName : project.name,
-    activationLink : 'https://google.com/'
-  }
+  // const values = {
+  //   userName : user.name,
+  //   projectName : project.name,
+  //   activationLink : 'https://google.com/'
+  // }
   
-  const template = generateEmailContent(templates.userOnboard, values)
+  // const template = generateEmailContent(templates.userOnboard, values)
 
-    const mailData = {
-      from:'riseimstechnologies@gmail.com',
-      to: user.email, // list of receivers
-      subject: template.subject,
-      text: "",
-      html: template.body,
-    };
+  //   const mailData = {
+  //     from:'riseimstechnologies@gmail.com',
+  //     to: user.email, // list of receivers
+  //     subject: template.subject,
+  //     text: "",
+  //     html: template.body,
+  //   };
 
-    let emailSent = await sendEmail(mailData)
-    if (emailSent) {
-      console.log("Email sent success")
-    } else {
-      console.log('Error in email sending.')
-    }
+  //   let emailSent = await sendEmail(mailData)
+  //   if (emailSent) {
+  //     console.log("Email sent success")
+  //   } else {
+  //     console.log('Error in email sending.')
+  //   }
 
   return res.status(201).send({ user });
 });

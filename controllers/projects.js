@@ -14,6 +14,7 @@ export const addProject = asyncMiddleware( async (req, res)=>{
         name : Joi.string().required(),
         lead : Joi.number().required(),
         startDate : Joi.date().required(),
+        workspaceId : Joi.number().required(),
         status : Joi.string(),
         priority : Joi.string(),
         budget : Joi.number(),
@@ -38,7 +39,8 @@ export const addProject = asyncMiddleware( async (req, res)=>{
         deadline: body.deadline,
         priority: body.priority,
         description: body.description, // Example for a description field
-        createdBy : req.user.id
+        createdBy : req.user.id,
+        workspaceId : body.workspaceId
         // Add other fields as necessary based on your model
     })
 
@@ -263,6 +265,7 @@ export const getProjects = asyncMiddleware(async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 });
+
 
 export const getSingleProject = asyncMiddleware(async (req, res) => {
   try {

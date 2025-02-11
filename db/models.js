@@ -13,6 +13,8 @@ import { Status } from "./status.js";
 import { UserProject } from "./userProject.js";
 import { Message } from "./message.js";
 import { PinnedMessage } from "./pinnedMessage.js";
+import Workspace from "./workspace.js";
+import { UserWorkspace } from "./userWorkspace.js";
 
 // Define relationships directly on models
 Organization.belongsToMany(Industry, {
@@ -76,6 +78,49 @@ Project.belongsToMany(User, {
 Task.belongsTo(Project, { foreignKey: "projectId", as: "project" });
 Project.hasMany(Task, { foreignKey: "projectId", as: "tasks" });
 
+// Relationship for User and workspace table
+User.hasMany(Workspace, {
+  foreignKey: "createdBy",
+  as: "workspaces", // Renamed alias to avoid conflict
+});
+
+Workspace.belongsTo(User, {
+  foreignKey: "createdBy",
+  as: "creator", // Renamed alias to avoid conflict
+});
+
+// Relationship for Project and workspace table
+Workspace.hasMany(Project, {
+  foreignKey: "workspaceId",
+  as: "projects", // Changed alias to "projects"
+});
+
+Project.belongsTo(Workspace, {
+  foreignKey: "workspaceId",
+  as: "workspace", // Kept this as "workspace" for clarity
+});
+
+// User and UserWorkspace table association User can be in multiple Workspaces
+// Define User-Workspace Many-to-Many Relationship
+User.belongsToMany(Workspace, {
+  through: UserWorkspace,
+  foreignKey: "userId",
+  as: "joinedWorkspaces", // Alias to access user's workspaces
+});
+
+// Define Workspace-User Many-to-Many Relationship
+Workspace.belongsToMany(User, {
+  through: UserWorkspace,
+  foreignKey: "workspaceId",
+  as: "members", // Alias to access members of a workspace
+});
+
+
+// Define Workspace-User One-to-Many Relationship for Ownership
+Workspace.belongsTo(User, { 
+  foreignKey: "createdBy", 
+  as: "owner"  // Alias to access the creator of the workspace
+});
 
 // One User can have many UserProjects
 User.hasMany(UserProject, {
@@ -105,7 +150,6 @@ Role.hasMany(UserProject, {
   as: "userProjects", // Alias for the association
 });
 
-
 // UserProject belongs to one Project
 UserProject.belongsTo(Project, {
   foreignKey: "projectId",
@@ -118,19 +162,18 @@ Task.belongsTo(User, { as: "assignedTo", foreignKey: "assignedToId" });
 Message.belongsTo(User, { foreignKey: "senderId", as: "sender" });
 User.hasMany(Message, { foreignKey: "senderId" });
 
-
 // Associations
 Message.hasMany(PinnedMessage, { foreignKey: "messageId", as: "pinned" });
-PinnedMessage.belongsTo(Message, { foreignKey: "messageId", as:"message" });
+PinnedMessage.belongsTo(Message, { foreignKey: "messageId", as: "message" });
 PinnedMessage.belongsTo(User, { foreignKey: "userId" }); // User who pinned the message
 PinnedMessage.belongsTo(Project, { foreignKey: "projectId" }); // For project messages
 PinnedMessage.belongsTo(User, { foreignKey: "receiverId", as: "Receiver" }); // For direct messages
 
 // Use migrations for schema changes instead of sync({ alter: true })
 async function migrate() {
-  console.log('running migrations')
+  console.log("running migrations");
   try {
-    await sequelize.sync({alter:true});
+    await sequelize.sync({ alter: true });
     // runSeeding();
     console.log("All models were synchronized successfully.");
   } catch (error) {
@@ -139,4 +182,3 @@ async function migrate() {
 }
 
 // migrate();
-

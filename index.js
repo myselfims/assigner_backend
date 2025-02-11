@@ -8,6 +8,7 @@ import tasks from "./routes/tasks.js";
 import comment from "./routes/comment.js";
 import otp from "./routes/otp.js";
 import projects from "./routes/projects.js";
+import workspaces from "./routes/workspace.js";
 import sprint from "./routes/sprint.js";
 import organization from "./routes/organization.js";
 import notifications from "./routes/notifications.js";
@@ -34,6 +35,7 @@ app.use((req, res, next) => {
 // API Routes
 app.use("/api/users", user);
 app.use("/api/login", login);
+app.use("/api/workspaces", workspaces);
 app.use("/api/projects", projects);
 app.use("/api/sprints", sprint);
 app.use("/api/organizations", organization);

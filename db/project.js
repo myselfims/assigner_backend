@@ -51,5 +51,13 @@ export const Project = sequelize.define("Project", {
       key: "id",
     },
   },
+  workspaceId: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    references: {
+      model: "Workspaces", // Table name for User model
+      key: "id",
+    },
+  },
 });
 
