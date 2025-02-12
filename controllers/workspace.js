@@ -66,7 +66,7 @@ export const getWorkspaces = asyncMiddleware(async (req, res) => {
         ...workspace.toJSON(),
         role: "Owned by You",
       })),
-      ...(assignedWorkspaces?.workspaces || []).map((workspace) => ({
+      ...(assignedWorkspaces?.joinedWorkspaces || []).map((workspace) => ({
         ...workspace.toJSON(),
         role: "Invited to You",
       })),

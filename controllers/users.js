@@ -118,6 +118,7 @@ export const createUser = asyncMiddleware(async (req, res) => {
     name: Joi.string().min(5).max(50).required(),
     email: Joi.string().min(5).max(255).required().email(),
     password: Joi.string().min(8).max(12).required(),
+    termsAndCondition: Joi.boolean(),
   });
 
   let { error } = schema.validate(req.body);

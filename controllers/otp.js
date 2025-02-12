@@ -30,7 +30,7 @@ export const sendOtp = asyncMiddleware(async (req, res) => {
     userName : user.name,  // User's name for dynamic insertion
     otp : otpObject.code       // The OTP for dynamic insertion
   };
-  const template = generateEmailContent(templates.otpTemplate, values);
+  const template = generateEmailContent("otpTemplate", values);
   const mailData = {
     from:'riseimstechnologies@gmail.com',
     to: req.body.email, // list of receivers
