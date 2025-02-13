@@ -249,7 +249,7 @@ export const addMember = asyncMiddleware(async (req, res) => {
   //     console.log('Error in email sending.')
   //   }
 
-  return res.status(201).send({ user });
+  return res.status(201).send(user);
 });
 
 

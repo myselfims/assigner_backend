@@ -6,6 +6,7 @@ import {
   deleteSprint,
   getSprintTasks
 } from "../controllers/sprint.js";
+import auth from "../middlewares/auth.js";
 
 const router = express.Router();
 
@@ -14,5 +15,5 @@ router.post("/", createSprint); // Create a new sprint
 router.get("/project/:projectId", getSprintsByProject); // Get all sprints for a project
 router.put("/:id", updateSprint); // Update a sprint by ID
 router.delete("/:id", deleteSprint); // Delete a sprint by ID
-router.get("/:id/tasks/", getSprintTasks); 
+router.get("/:id/tasks/", auth(), getSprintTasks); 
 export default router;

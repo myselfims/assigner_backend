@@ -23,7 +23,7 @@ export const Task = sequelize.define("Task", {
     status: {
       type: DataTypes.STRING,
       allowNull: false,
-      defaultValue: "To-Do",
+      defaultValue: "1",
     },
     assignedById: {
       type: DataTypes.INTEGER,

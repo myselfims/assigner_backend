@@ -1,5 +1,5 @@
 import express from "express";
-import { addProject, getProjects, getStatuses, updateStatuses, getTeamMembers, updateMember, getSingleProject, getMemberRole } from "../controllers/projects.js";
+import { addProject, getProjects, getStatuses, updateStatuses, getTeamMembers, updateMember, getSingleProject, getMemberRole, removeMember } from "../controllers/projects.js";
 import auth from "../middlewares/auth.js";
 
 const router = express.Router()
@@ -13,6 +13,7 @@ router
 .get('/team/:projectId', auth(), getTeamMembers)
 .patch('/team/:projectId/:userId', auth(), updateMember)
 .get('/:projectId/member/role', auth(), getMemberRole)
+.delete('/team/:projectId/:userId', auth(), removeMember)
 
 
 

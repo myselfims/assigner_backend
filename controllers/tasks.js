@@ -10,7 +10,7 @@ let schema = Joi.object({
   sprintId : Joi.number(),
   projectId : Joi.number().required(),
   title: Joi.string().min(2).required(),
-  description: Joi.string(),
+  description: Joi.string().optional(),
   deadline: Joi.date().required(),
   assignedToId: Joi.number().required(),
 });
@@ -46,14 +46,6 @@ export const createTask = asyncMiddleware(async (req, res) => {
   let user = await User.findByPk(req.body.assignedToId);
 
   console.log("this is email", req.user.assignedToId);
-
-  const mailData = {
-    from: "shaikhimran7585@gmail.com", // sender address
-    to: user.email, // list of receivers
-    subject: `${creater.name} is assigned you a new task`,
-    text: "",
-    html: `<b>Hey there! </b><br>You have a new task.<br/><hr/>Check here https://assinger.riseimstechnologies.com/. Title : ${task.title}`,
-  };
 
   const emailContent = generateEmailContent("assignedTaskTemplate", {userName : user.name, projectName : 'null', taskName : task.title, dueDate : task.deadline, assignedBy : creater.name, taskLink : 'http://google.com/'})
   console.log(user.email)

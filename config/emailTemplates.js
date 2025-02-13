@@ -47,7 +47,6 @@ export const genericTemplate = `
 <body>
 
     <div class="container">
-        <h1>{{subject}}</h1>
         <p>Hi {{userName}},</p>
         
         {{body}}
@@ -177,7 +176,6 @@ export const templates = {
 export function generateEmailContent(templateKey, values) {
   const template = templates[templateKey]
   const filledBody = genericTemplate
-    .replace("{{subject}}", template.subject)
     .replace("{{body}}", template.body);
 
   return Object.fromEntries(
