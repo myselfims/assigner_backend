@@ -1,6 +1,7 @@
 import { Server } from "socket.io";
-import handleCommentSocket  from "./comment.js";
+import handleCommentSocket from "./comment.js";
 import handleChatSocket from "./chat.js";
+import handleNotificationSocket from "./notification.js"; // Import notification socket
 
 export const initializeSocket = (httpServer) => {
   const io = new Server(httpServer, {
@@ -15,6 +16,7 @@ export const initializeSocket = (httpServer) => {
 
     handleCommentSocket(io, socket);
     handleChatSocket(io, socket);
+    handleNotificationSocket(io, socket); // Initialize notifications
 
     socket.on("disconnect", () => {
       console.log("User disconnected:", socket.id);

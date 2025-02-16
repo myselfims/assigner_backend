@@ -5,6 +5,7 @@ import { asyncMiddleware } from "../middlewares/async.js";
 import Joi from "joi";
 import { transporter, sendEmail } from "../smtp.js";
 import { generateEmailContent } from "../config/emailTemplates.js";
+import { createNotification } from "../services/notificationService.js";
 
 let schema = Joi.object({
   sprintId : Joi.number(),
@@ -28,33 +29,56 @@ export const getAllTasks = asyncMiddleware(async (req, res) => {
 });
 
 export const createTask = asyncMiddleware(async (req, res) => {
+  try {
+    // Validate request body
+    let { error } = schema.validate(req.body);
+    if (error) return res.status(400).send(error.details[0].message);
 
-  let { error } = schema.validate(req.body);
-  if (error) return res.status(400).send(error.details[0].message);
+    const { projectId, sprintId, title, description, deadline, assignedToId } = req.body;
 
-  let task = await Task.create({
-    sprintId : req.body.sprintId,
-    projectId : req.body.projectId,
-    title: req.body.title,
-    description: req.body.description,
-    deadline: req.body.deadline,
-    assignedById: req.user.id,
-    assignedToId: req.body.assignedToId,
-  });
+    // Get the count of existing tasks in the project (for zero-based indexing)
+    const taskCount = await Task.count({ where: { projectId } }) + 1;
 
-  let creater = await User.findByPk(req.user.id);
-  let user = await User.findByPk(req.body.assignedToId);
+    // Create the task with the correct index
+    let task = await Task.create({
+      sprintId,
+      projectId,
+      title,
+      description,
+      deadline,
+      assignedById: req.user.id,
+      assignedToId,
+      index: taskCount, // Ensures indexing starts from 0
+    });
 
-  console.log("this is email", req.user.assignedToId);
+    // Fetch user details for email notification
+    let creater = await User.findByPk(req.user.id);
+    let user = await User.findByPk(assignedToId);
+    // userId, title, message, type = "info", priority = 3, redirectUrl = null, io
+    createNotification(user?.id, "newTaskAssigned", {taskName : task.title, assignedBy: creater.name }, req.io);
 
-  const emailContent = generateEmailContent("assignedTaskTemplate", {userName : user.name, projectName : 'null', taskName : task.title, dueDate : task.deadline, assignedBy : creater.name, taskLink : 'http://google.com/'})
-  console.log(user.email)
-  sendEmail(user.email, emailContent.subject, emailContent.body).then((res)=>{
-    console.log("mail sent")
-  })
+    // Generate email content
+    const emailContent = generateEmailContent("assignedTaskTemplate", {
+      userName: user.name,
+      projectName: "null",
+      taskName: task.title,
+      dueDate: task.deadline,
+      assignedBy: creater.name,
+      taskLink: "http://google.com/",
+    });
 
-  res.send(task);
+    // Send email notification
+    sendEmail(user.email, emailContent.subject, emailContent.body).then(() => {
+      console.log("Mail sent");
+    });
+
+    res.status(201).json(task);
+  } catch (error) {
+    console.error("Error creating task:", error);
+    res.status(500).json({ error: "Failed to create task" });
+  }
 });
+
 
 export const getTask = asyncMiddleware(async (req, res) => {
   let task = await Task.findByPk(req.params.id);

@@ -5,23 +5,44 @@ import { User } from "../db/user.js";
 import { UserProject } from "../db/userProject.js";
 import Workspace from "../db/workspace.js";
 import { asyncMiddleware } from "../middlewares/async.js";
+import Joi from "joi";
+
+
+// Define schema
+const sprintSchema = Joi.object({
+  id : Joi.number().optional(),
+  title: Joi.string().required(),
+  description: Joi.string().allow(null, '').optional(),
+  startDate: Joi.alternatives().try(Joi.date(), Joi.string().empty('')).optional(),
+  endDate: Joi.alternatives().try(Joi.date(), Joi.string().empty('')).optional(),
+  projectId: Joi.number().optional(),
+  status : Joi.string().optional(),
+  index : Joi.number().optional(),
+  updatedAt : Joi.string().optional(),
+  createdAt : Joi.string().optional(),
+});
+
 
 // Create a new sprint
 export const createSprint = asyncMiddleware(async (req, res) => {
   try {
-    const { projectId, title, description, startDate, endDate } = req.body;
-    const sprint = await Sprint.create({
-      projectId,
-      title,
-      description,
-      startDate,
-      endDate,
-    });
+    // Validate request body
+    const { error, value } = sprintSchema.validate(req.body);
+    if (error) {
+      console.log(value)
+      console.log(error)
+      return res.status(400).json({ error: error.details[0].message });
+    }
+
+    // Create sprint
+    const sprint = await Sprint.create(value);
     res.status(201).json(sprint);
   } catch (error) {
+    console.error(error);
     res.status(500).json({ error: "Failed to create sprint" });
   }
 });
+
 
 // Get all sprints for a project
 export const getSprintsByProject = asyncMiddleware(async (req, res) => {
@@ -38,8 +59,15 @@ export const getSprintsByProject = asyncMiddleware(async (req, res) => {
 export const updateSprint = asyncMiddleware(async (req, res) => {
   try {
     const { id } = req.params;
+    const { error, value } = sprintSchema.validate(req.body);
+    if (error) {
+      console.log(value)
+      console.log(error)
+      return res.status(400).json({ error: error.details[0].message });
+    }
+
     const updates = req.body;
-    const sprint = await Sprint.update(updates, { where: { id } });
+    const sprint = await Sprint.update(value, { where: { id } });
     res.status(200).json(sprint);
   } catch (error) {
     res.status(500).json({ error: "Failed to update sprint" });

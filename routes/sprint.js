@@ -13,7 +13,7 @@ const router = express.Router();
 // Sprint-related routes
 router.post("/", createSprint); // Create a new sprint
 router.get("/project/:projectId", getSprintsByProject); // Get all sprints for a project
-router.put("/:id", updateSprint); // Update a sprint by ID
+router.patch("/:id", updateSprint); // Partial Update a sprint by ID
 router.delete("/:id", deleteSprint); // Delete a sprint by ID
 router.get("/:id/tasks/", auth(), getSprintTasks); 
 export default router;

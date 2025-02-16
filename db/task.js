@@ -48,4 +48,9 @@ export const Task = sequelize.define("Task", {
       allowNull: false,
       defaultValue: 0, // Default index value, can be used when new tasks are created
     },
+    rank : {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      defaultValue: 0, // Default index value, can be used when new tasks are created
+    },
   });
