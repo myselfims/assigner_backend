@@ -6,6 +6,15 @@ const notificationConfig = {
     type: "info",
     priority: 3,
   },
+  projectLeadAssigned: {
+    title: "Project Lead Assigned",
+    message:
+      "You have been assigned as the Project Lead for {{projectName}} by {{assignedBy}}.",
+    type: "success",
+    priority: 2,
+    redirectUrl: "/project/{{projectId}}/action-items",
+  },
+
   taskCompleted: {
     title: "Task Completed",
     message: "A task assigned to you has been marked as completed.",
@@ -14,10 +23,13 @@ const notificationConfig = {
   },
   taskUpdated: {
     title: "Task Updated",
-    message: "A task you are working on has been updated.",
+    message:
+      "The task {{taskName}} has been updated by {{updatedBy}} in project {{projectName}}.",
     type: "info",
-    priority: 3,
+    priority: 2,
+    redirectUrl : '/project/{{projectId}}/action-items/{{taskId}}'
   },
+
   commentAdded: {
     title: "New Comment",
     message: "Someone has commented on your task.",

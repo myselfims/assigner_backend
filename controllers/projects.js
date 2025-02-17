@@ -10,6 +10,7 @@ import sequelize from "../db/db.js";
 import { Role } from "../db/roleAndDesignation.js";
 import { generateEmailContent } from "../config/emailTemplates.js";
 import { sendEmail } from "../smtp.js";
+import {createNotification} from '../services/notificationService.js'
 
 export const addProject = asyncMiddleware(async (req, res) => {
   const schema = Joi.object({
@@ -39,12 +40,22 @@ export const addProject = asyncMiddleware(async (req, res) => {
     status: body.status,
     budget: body.budget,
     deadline: body.deadline,
-    priority: body.priority,
+    priority: body.priority, 
     description: body.description, // Example for a description field
     createdBy: req.user.id,
     workspaceId: body.workspaceId,
     // Add other fields as necessary based on your model
   });
+  console.log('Body is ', req.body)
+  if (body.lead){
+    console.log('lead is ', body.lead)
+    UserProject.create({
+      userId : body.lead,
+      projectId : project.id,
+      roleId : 2
+    })
+    createNotification(body.lead, 'projectLeadAssigned', {projectName : project.name, assignedBy : req.user.name, projectId : project.id}, req.io)
+  }
 
   const statusPromises = defaultStatuses.map((status) =>
     Status.create({ name: status, projectId: project.id })
@@ -73,6 +84,8 @@ export const getStatuses = async (req, res) => {
     res.status(500).json({ message: "Internal server error." });
   }
 };
+
+
 export const updateStatuses = async (req, res) => {
   const { projectId } = req.params;
 

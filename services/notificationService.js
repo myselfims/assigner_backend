@@ -21,6 +21,7 @@ export async function createNotification(userId, notificationKey, dynamicData, i
 
   const title = template.title;
   const message = formatNotification(template.message, dynamicData);
+  const redirectUrl = template.redirectUrl ? formatNotification(template.redirectUrl, dynamicData) : null
 
   const notification = await Notification.create({
     userId,
@@ -28,7 +29,7 @@ export async function createNotification(userId, notificationKey, dynamicData, i
     message,
     type: template.type,
     priority: template.priority,
-    redirectUrl: template.redirectUrl || null,
+    redirectUrl: redirectUrl,
   });
 
   // Emit real-time notification

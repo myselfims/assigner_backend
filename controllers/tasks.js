@@ -6,6 +6,7 @@ import Joi from "joi";
 import { transporter, sendEmail } from "../smtp.js";
 import { generateEmailContent } from "../config/emailTemplates.js";
 import { createNotification } from "../services/notificationService.js";
+import { Project } from "../db/project.js";
 
 let schema = Joi.object({
   sprintId : Joi.number(),
@@ -120,5 +121,59 @@ export const update = asyncMiddleware(async (req, res) => {
   }
 
   task.save();
+
+
+  // Fetch Project Owner and Lead
+  const project = await Project.findByPk(task.projectId);
+  const assignedById = task.assignedById;
+  const projectOwner = project.createdBy; // Assuming ownerId field in Project model
+  const projectLead = project.lead; // Assuming leadId field in Project model
+  console.log('project is ', project)
+
+  // Send notifications
+  if (assignedById) {
+    createNotification(
+      assignedById,
+      "taskUpdated",
+      {
+        taskName: task.title,
+        updatedBy: req.user.name,
+        projectId: project.id,
+        projectName : project.name,
+        taskId : task.id
+      },
+      req.io
+    );
+  }
+  if (projectOwner) {
+    createNotification(
+      projectOwner,
+      "taskUpdated",
+      {
+        taskName: task.title,
+        updatedBy: req.user.name,
+        projectId: project.id,
+        projectName : project.name,
+        taskId : task.id
+      },
+      req.io
+    );
+  }
+
+  if (projectLead) {
+    createNotification(
+      projectLead,
+      "taskUpdated",
+      {
+        taskName: task.title,
+        updatedBy: req.user.name,
+        projectId: project.id,
+        projectName : project.name,
+        taskId : task.id
+      },
+      req.io
+    );
+  }
+
   res.send(task);
 });
