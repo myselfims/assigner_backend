@@ -47,6 +47,10 @@ export const Message = sequelize.define("Message", {
     type: DataTypes.BOOLEAN,
     defaultValue: false, // True for project chats
   },
+  isRead: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false,
+  },  
   createdAt: {
     type: DataTypes.DATE,
     defaultValue: DataTypes.NOW,

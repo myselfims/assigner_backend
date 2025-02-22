@@ -115,6 +115,21 @@ Workspace.belongsToMany(User, {
   as: "members", // Alias to access members of a workspace
 });
 
+UserWorkspace.belongsTo(User, {
+  foreignKey: "userId",
+  as: "user", // Alias for the association
+});
+
+UserWorkspace.belongsTo(Role, {
+  foreignKey: "roleId",
+  as: "role", // Alias for the association
+});
+
+UserWorkspace.belongsTo(Workspace, {
+  foreignKey: "workspaceId",
+  as: "workspace", // Alias for the association
+});
+
 
 // Define Workspace-User One-to-Many Relationship for Ownership
 Workspace.belongsTo(User, { 
@@ -139,6 +154,7 @@ UserProject.belongsTo(User, {
   foreignKey: "userId",
   as: "user", // Alias for the association
 });
+
 
 UserProject.belongsTo(Role, {
   foreignKey: "roleId",

@@ -5,6 +5,7 @@ import { asyncMiddleware } from "../middlewares/async.js";
 import { UserWorkspace } from "../db/userWorkspace.js";
 import { Project } from "../db/project.js";
 import { UserProject } from "../db/userProject.js";
+import { Role } from "../db/roleAndDesignation.js";
 
 export const createWorkspace = asyncMiddleware(async (req, res) => {
   // Validation schema
@@ -35,7 +36,6 @@ export const createWorkspace = asyncMiddleware(async (req, res) => {
     workspace,
   });
 });
-
 
 export const getWorkspaces = asyncMiddleware(async (req, res) => {
   try {
@@ -81,67 +81,105 @@ export const getWorkspaces = asyncMiddleware(async (req, res) => {
 });
 
 export const getProjects = asyncMiddleware(async (req, res) => {
-    try {
-        const { workspaceId } = req.params;
-        const userId = req.user.id;
+  try {
+    const { workspaceId } = req.params;
+    const userId = req.user.id;
 
-        const createdProjects = await Project.findAll({
-            where: { createdBy : userId, workspaceId : workspaceId },
-            include: {
-              model: User,
-              as: "leadUser", // Fetch the lead details
-              attributes: ["id", "name", "email"], // Only select necessary fields
-            },
-        });
-        const assignedProjects = await UserProject.findAll({
-          where: { userId },
-          include: {
-            model: Project,
-            where : {workspaceId},
-            as : 'project'
-          },
-        });
-        
-        if (!createdProjects) {
-            return res.status(404).json({ message: 'No projects found for this user.' });
-        }
+    const createdProjects = await Project.findAll({
+      where: { createdBy: userId, workspaceId: workspaceId },
+      include: {
+        model: User,
+        as: "leadUser", // Fetch the lead details
+        attributes: ["id", "name", "email"], // Only select necessary fields
+      },
+    });
+    const assignedProjects = await UserProject.findAll({
+      where: { userId },
+      include: {
+        model: Project,
+        where: { workspaceId },
+        as: "project",
+      },
+    });
 
-        console.log(createdProjects)
-
-        // Helper function to get team size for a project
-        const getTeamSize = async (projectId) => {
-            // Get the number of users assigned to this project from the UserProject table
-            const teamCount = await UserProject.count({ where: { projectId } });
-            return teamCount; // This will be the team size
-        };
-
-        // Combine created and assigned projects
-        const projects = [
-            ...createdProjects.map(async (project) => {
-                const teamSize = await getTeamSize(project.id);
-                return {
-                    ...project.toJSON(), // Converts sequelize model to plain object
-                    role: 'Created by You',
-                    teamSize: teamSize + 1, // Add 1 for the creator
-                };
-            }),
-            ...assignedProjects.map(async ({project}) => {
-                const teamSize = await getTeamSize(project.id);
-                return {
-                    ...project.toJSON(),
-                    role: 'Assigned to You',
-                    teamSize: teamSize,
-                };
-            }),
-        ];
-
-        // Wait for all async operations to complete
-        const resolvedProjects = await Promise.all(projects);
-
-        // Respond with the combined projects
-        res.status(200).json(resolvedProjects);
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: err.message });
+    if (!createdProjects) {
+      return res
+        .status(404)
+        .json({ message: "No projects found for this user." });
     }
+
+    console.log(createdProjects);
+
+    // Helper function to get team size for a project
+    const getTeamSize = async (projectId) => {
+      // Get the number of users assigned to this project from the UserProject table
+      const teamCount = await UserProject.count({ where: { projectId } });
+      return teamCount; // This will be the team size
+    };
+
+    // Combine created and assigned projects
+    const projects = [
+      ...createdProjects.map(async (project) => {
+        const teamSize = await getTeamSize(project.id);
+        return {
+          ...project.toJSON(), // Converts sequelize model to plain object
+          role: "Created by You",
+          teamSize: teamSize + 1, // Add 1 for the creator
+        };
+      }),
+      ...assignedProjects.map(async ({ project }) => {
+        const teamSize = await getTeamSize(project.id);
+        return {
+          ...project.toJSON(),
+          role: "Assigned to You",
+          teamSize: teamSize,
+        };
+      }),
+    ];
+
+    // Wait for all async operations to complete
+    const resolvedProjects = await Promise.all(projects);
+
+    // Respond with the combined projects
+    res.status(200).json(resolvedProjects);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+export const getUsers = asyncMiddleware(async (req, res) => {
+  try {
+    const { workspaceId } = req.params;
+    const userId = req.user.id;
+
+    const workspaceUsers = await UserWorkspace.findAll({
+      where: { workspaceId: workspaceId },
+      include: [
+        {
+          model: User,
+          as: "user", // Fetch the lead details
+          attributes: ["id", "name", "email"], // Only select necessary fields
+        },
+        {
+          model: Role,
+          as: "role",
+        },
+      ],
+    });
+
+    if (!workspaceUsers) {
+      return res
+        .status(404)
+        .json({ message: "No users found for this workspace." });
+    }
+
+    console.log(workspaceUsers);
+
+    // Respond with the combined projects
+    res.status(200).json({ workspaceUsers });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
 });

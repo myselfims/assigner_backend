@@ -4,6 +4,11 @@ import { User } from "../db/user.js";
 import { PinnedMessage } from "../db/pinnedMessage.js";
 import { Sequelize } from "sequelize";
 
+export const getRoomId = (user1, user2) => {
+  return [user1, user2].sort().join("_");
+};
+
+
 export const sendMessage = asyncMiddleware(async (req, res) => {
   try {
     const { type, projectId, receiverId, content } = req.body;
@@ -38,11 +43,13 @@ export const sendMessage = asyncMiddleware(async (req, res) => {
     // Emit the message to the relevant room(s) via WebSocket
     if (projectId) {
       // If the message is related to a project, emit it to the project room
-      console.log("sending message to socket");
+      console.log("sending message to socket to project");
       req.io.to(`chat-${projectId}`).emit("message", newMessage);
     } else if (receiverId) {
+      console.log("sending message to socket to reciever");
       // If the message is a direct message, emit it to the user room
-      req.io.to(`chat-${receiverId}`).emit("message", newMessage);
+      let roomId = getRoomId(receiverId, req.user.id)
+      req.io.to(`chat-${roomId}`).emit("message", newMessage);
     }
 
     res.status(201).json(newMessage);
@@ -103,6 +110,66 @@ export const getProjectMessage = asyncMiddleware(async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+
+export const getUserMessage = asyncMiddleware(async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const requesterId = req.user.id;
+
+    if (!userId) {
+      return res.status(400).json({ error: "UserId cannot be empty" });
+    }
+
+    const messages = await Message.findAll({
+      where: {
+        [Sequelize.Op.or]: [
+          { senderId: requesterId, receiverId: userId },
+          { senderId: userId, receiverId: requesterId },
+        ],
+      },
+      include: [
+        {
+          model: User,
+          as: "sender",
+          attributes: ["id", "name", "email", "avatar"],
+        },
+      ],
+      attributes: {
+        include: [
+          [
+            Sequelize.literal(`(
+              SELECT COUNT(*)
+              FROM \`PinnedMessages\` AS \`pinned\`
+              WHERE \`pinned\`.\`messageId\` = \`Message\`.\`id\`
+              AND \`pinned\`.\`userId\` = ${requesterId}
+            ) > 0`),
+            "pinned",
+          ],
+        ],
+      },
+      order: [["createdAt", "ASC"]], // Sort messages in ascending order
+    });
+
+    // Format response
+    const formattedMessages = messages.map((message) => ({
+      id: message.id,
+      content: message.content,
+      sender: message.sender,
+      isRead: message.isRead,
+      senderId: message.sender.id,
+      receiverId: message.receiverId,
+      pinned: message.getDataValue("pinned"), // Directly use the calculated value
+      createdAt: message.createdAt,
+      updatedAt: message.updatedAt,
+    }));
+
+    res.status(200).json(formattedMessages);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 
 
 
@@ -249,5 +316,57 @@ export const pinMessage = asyncMiddleware(async (req, res) => {
   } catch (error) {
     console.error("Error pinning message:", error);
     res.status(500).json({ success: false, message: "Internal server error" });
+  }
+});
+
+
+export const getUnreadCounts = asyncMiddleware(async (req, res) => {
+  console.log( 'unread user id')
+  try {
+    const userId = req.user.id; // Get logged-in user ID
+    // Fetch unread counts grouped by senderId
+    const unreadCounts = await Message.findAll({
+      where: { receiverId: userId, isRead: false },
+      attributes: [
+        "senderId",
+        [Sequelize.fn("COUNT", Sequelize.col("id")), "unreadCount"]
+      ],
+      group: ["senderId"],
+    });
+
+    // Convert result array into { senderId: unreadCount } object
+    const unreadCountsMap = unreadCounts.reduce((acc, item) => {
+      acc[item.senderId] = item.getDataValue("unreadCount");
+      return acc;
+    }, {});
+
+    res.status(200).json(unreadCountsMap);
+  } catch (error) {
+    console.error("Error fetching unread counts:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+})
+
+export const markMessagesAsRead = asyncMiddleware(async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const requesterId = req.user.id;
+
+    await Message.update(
+      { isRead: true },
+      {
+        where: {
+          senderId: userId,
+          receiverId: requesterId,
+          isRead: false,
+        },
+      }
+    );
+    let roomId = getRoomId(requesterId, userId)
+    req.io.to(`chat-${roomId}`).emit("all_messages_seen", true);
+
+    res.status(200).json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
 });
