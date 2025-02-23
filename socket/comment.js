@@ -1,5 +1,4 @@
 const commentsSocket = (io) => {
-    io.on("connection", (socket) => {
       console.log(`Comment socket connected: ${socket.id}`);
   
       // Join a task comment room
@@ -33,7 +32,7 @@ const commentsSocket = (io) => {
       socket.on("disconnect", () => {
         console.log(`Comment socket disconnected: ${socket.id}`);
       });
-    });
+
   };
   
   export default commentsSocket;

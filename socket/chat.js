@@ -1,5 +1,4 @@
-const chatSocket = (io) => {
-  io.on("connection", (socket) => {
+const chatSocket = (socket) => {
     console.log(`Chat socket connected: ${socket.id}`);
 
     // User joins a chat room
@@ -9,7 +8,7 @@ const chatSocket = (io) => {
       console.log(`User ${uniqueId} joined chat`);
 
       // Notify others that the user is online
-      io.emit("user:online", { uniqueId, status: "online" });
+      socket.emit("user:online", { uniqueId, status: "online" });
     });
 
     socket.on("leave:chat", (uniqueId) => {
@@ -20,7 +19,7 @@ const chatSocket = (io) => {
       console.log(`User ${uniqueId} left chat`);
     
       // Notify others that the user is offline
-      io.emit("user:offline", { uniqueId, status: "offline" });
+      socket.emit("user:offline", { uniqueId, status: "offline" });
     });
     
 
@@ -43,11 +42,11 @@ const chatSocket = (io) => {
 
       // Send to project chat room
       if (projectId) {
-        io.to(`chat-${projectId}`).emit("message", messageData);
+        socket.to(`chat-${projectId}`).emit("message", messageData);
       }
       // Send direct message to specific user
       else if (receiverId) {
-        io.to(`chat-${receiverId}`).emit("message", messageData);
+        socket.to(`chat-${receiverId}`).emit("message", messageData);
       }
 
       console.log(`Message from ${senderId}: ${content}`);
@@ -56,7 +55,7 @@ const chatSocket = (io) => {
     // Handle message seen event
     socket.on("message:seen", ({ messageId, roomId, userId }) => {
       console.log(`Message ${messageId} seen by room ${roomId}`);
-      io.to(`chat-${roomId}`).emit("message:seen", { messageId, userId });
+      socket.to(`chat-${roomId}`).emit("message:seen", { messageId, userId });
     });
 
     // Handle typing status
@@ -65,9 +64,9 @@ const chatSocket = (io) => {
       const { name, projectId, receiverId } = data;
 
       if (projectId) {
-        io.to(`chat-${projectId}`).emit("typing", name);
+        socket.to(`chat-${projectId}`).emit("typing", name);
       } else if (receiverId) {
-        io.to(`chat-${receiverId}`).emit("typing", name);
+        socket.to(`chat-${receiverId}`).emit("typing", name);
       }
     });
 
@@ -76,9 +75,9 @@ const chatSocket = (io) => {
       console.log(`Chat socket disconnected: ${socket.id}`);
 
       // Optionally, track and emit offline status
-      io.emit("user:offline", { uniqueId: socket.id, status: "offline" });
+      socket.emit("user:offline", { uniqueId: socket.id, status: "offline" });
     });
-  });
+
 };
 
 export default chatSocket;

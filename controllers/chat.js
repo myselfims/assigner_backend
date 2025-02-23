@@ -3,11 +3,11 @@ import { Message } from "../db/message.js";
 import { User } from "../db/user.js";
 import { PinnedMessage } from "../db/pinnedMessage.js";
 import { Sequelize } from "sequelize";
+import { UserWorkspace } from "../db/userWorkspace.js";
 
 export const getRoomId = (user1, user2) => {
   return [user1, user2].sort().join("_");
 };
-
 
 export const sendMessage = asyncMiddleware(async (req, res) => {
   try {
@@ -48,8 +48,9 @@ export const sendMessage = asyncMiddleware(async (req, res) => {
     } else if (receiverId) {
       console.log("sending message to socket to reciever");
       // If the message is a direct message, emit it to the user room
-      let roomId = getRoomId(receiverId, req.user.id)
+      let roomId = getRoomId(receiverId, req.user.id);
       req.io.to(`chat-${roomId}`).emit("message", newMessage);
+      req.io.to(`socket-${receiverId}`).emit("message", newMessage);
     }
 
     res.status(201).json(newMessage);
@@ -57,8 +58,6 @@ export const sendMessage = asyncMiddleware(async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
-
-
 
 export const getProjectMessage = asyncMiddleware(async (req, res) => {
   try {
@@ -170,10 +169,6 @@ export const getUserMessage = asyncMiddleware(async (req, res) => {
   }
 });
 
-
-
-
-
 export const deleteMessage = asyncMiddleware(async (req, res) => {
   try {
     const { messageId } = req.params;
@@ -232,7 +227,7 @@ export const getPinnedMessages = asyncMiddleware(async (req, res) => {
             {
               model: User,
               as: "sender", // Assuming a 'sender' alias exists for User in the Message model
-              attributes: ["id","name"], // Only include the sender's name
+              attributes: ["id", "name"], // Only include the sender's name
             },
           ],
         },
@@ -268,12 +263,10 @@ export const pinMessage = asyncMiddleware(async (req, res) => {
         .json({ success: false, message: "Message ID is required" });
     }
     if (!projectId && !receiverId) {
-      return res
-        .status(400)
-        .json({
-          success: false,
-          message: "Either projectId or receiverId is required",
-        });
+      return res.status(400).json({
+        success: false,
+        message: "Either projectId or receiverId is required",
+      });
     }
 
     // Check if the message exists
@@ -319,9 +312,8 @@ export const pinMessage = asyncMiddleware(async (req, res) => {
   }
 });
 
-
 export const getUnreadCounts = asyncMiddleware(async (req, res) => {
-  console.log( 'unread user id')
+  console.log("unread user id");
   try {
     const userId = req.user.id; // Get logged-in user ID
     // Fetch unread counts grouped by senderId
@@ -329,7 +321,7 @@ export const getUnreadCounts = asyncMiddleware(async (req, res) => {
       where: { receiverId: userId, isRead: false },
       attributes: [
         "senderId",
-        [Sequelize.fn("COUNT", Sequelize.col("id")), "unreadCount"]
+        [Sequelize.fn("COUNT", Sequelize.col("id")), "unreadCount"],
       ],
       group: ["senderId"],
     });
@@ -345,7 +337,7 @@ export const getUnreadCounts = asyncMiddleware(async (req, res) => {
     console.error("Error fetching unread counts:", error);
     res.status(500).json({ error: "Internal server error" });
   }
-})
+});
 
 export const markMessagesAsRead = asyncMiddleware(async (req, res) => {
   try {
@@ -362,7 +354,7 @@ export const markMessagesAsRead = asyncMiddleware(async (req, res) => {
         },
       }
     );
-    let roomId = getRoomId(requesterId, userId)
+    let roomId = getRoomId(requesterId, userId);
     req.io.to(`chat-${roomId}`).emit("all_messages_seen", true);
 
     res.status(200).json({ success: true });
@@ -370,3 +362,45 @@ export const markMessagesAsRead = asyncMiddleware(async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+
+
+export const getRecentMessages = async (req, res) => {
+  try {
+    const { workspaceId } = req.query;
+    const requesterId = req.user.id
+    // Find all users in the workspace
+    const workspaceUsers = await UserWorkspace.findAll({
+      where: { workspaceId: workspaceId },
+    });
+
+    console.log('Workspace users found', workspaceUsers.length)
+    // Extract user IDs
+    const userIds = workspaceUsers.map(user => user.userId);
+    console.log('user ids', userIds)
+    // Fetch recent messages for each user
+    const messagesArray = await Promise.all(
+      userIds.map(async (userId) => {
+        const message = await Message.findOne({
+          where: {
+            [Sequelize.Op.or]: [
+              { senderId: requesterId, receiverId: userId },
+              { senderId: userId, receiverId: requesterId },
+            ],
+          },
+          order: [["createdAt", "DESC"]],
+        });
+        return message ? { [userId]: message } : null;
+      })
+    );
+
+    // Convert array of objects into a single object & remove nulls
+    const messages = Object.assign({}, ...messagesArray.filter(msg => msg !== null));
+
+    res.status(200).json(messages);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Error fetching recent messages" });
+  }
+};
+
+

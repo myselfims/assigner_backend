@@ -1,6 +1,6 @@
 
 
-const handleNotificationSocket = (io, socket) => {
+const handleNotificationSocket = (socket) => {
     console.log(`Notification socket connected: ${socket.id}`);
   
     // User joins notification room (to receive personal notifications)
