@@ -31,6 +31,10 @@ export const ActivityLog = sequelize.define("ActivityLog", {
     type: DataTypes.TEXT,
     allowNull: false, // Example: 'User John updated Task #23'
   },
+  redirectUrl : {
+    type: DataTypes.TEXT,
+    allowNull: true, // Example: 'User John updated Task #23'
+  },
   ipAddress: {
     type: DataTypes.STRING,
     allowNull: true, // Store IP address if needed for auditing

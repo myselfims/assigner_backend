@@ -9,6 +9,7 @@ export const seedRoles = async () => {
       { name: 'Manager', description: 'Can manage tasks, users, and view reports.' },
       { name: 'Contributor', description: 'Can create and edit tasks assigned to them.' },
       { name: 'Viewer', description: 'Can view tasks and reports without making changes.' },
+      { name: 'Owner', description: 'Owner of the workspace or project.' },
     ];
 
     // Use bulkCreate to insert multiple records

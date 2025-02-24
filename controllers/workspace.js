@@ -6,6 +6,8 @@ import { UserWorkspace } from "../db/userWorkspace.js";
 import { Project } from "../db/project.js";
 import { UserProject } from "../db/userProject.js";
 import { Role } from "../db/roleAndDesignation.js";
+import ActivityLog from "../db/activityLog.js";
+import { generateLogContent } from "../config/activityMessages.js";
 
 export const createWorkspace = asyncMiddleware(async (req, res) => {
   // Validation schema
@@ -16,7 +18,7 @@ export const createWorkspace = asyncMiddleware(async (req, res) => {
   });
 
   // Validate request body
-  const { error } = schema.validate(req.body);
+  const { error, value } = schema.validate(req.body);
   if (error) return res.status(400).send(error.details[0].message);
 
   // Check if user exists
@@ -29,6 +31,29 @@ export const createWorkspace = asyncMiddleware(async (req, res) => {
     type: req.body.type,
     description: req.body.description,
     createdBy: req.user.id,
+  });
+
+  let log = generateLogContent('newWorkspaceCreated', {workspaceName : value.name, createrName : req.user.name})
+
+  ActivityLog.create({
+    ...log,
+    entityId : workspace.id,
+    workspaceId : workspace.id,
+    userId : req.user.id,
+    
+  })
+
+  const role = await Role.findOne({ where: { name: "Owner" } });
+
+  if (!role) {
+    throw new Error("Owner role not found");
+  }
+
+  UserWorkspace.create({
+    workspaceId: workspace.id,
+    userId: req.user.id,
+    roleId: role.id,
+    status: "active",
   });
 
   res.status(201).json({
@@ -62,10 +87,6 @@ export const getWorkspaces = asyncMiddleware(async (req, res) => {
 
     // Combine both lists
     const workspaces = [
-      ...createdWorkspaces.map((workspace) => ({
-        ...workspace.toJSON(),
-        role: "Owned by You",
-      })),
       ...(assignedWorkspaces?.joinedWorkspaces || []).map((workspace) => ({
         ...workspace.toJSON(),
         role: "Invited to You",
