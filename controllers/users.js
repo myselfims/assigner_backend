@@ -12,23 +12,22 @@ import { generateEmailContent, templates } from "../config/emailTemplates.js";
 import Workspace from "../db/workspace.js";
 import { UserWorkspace } from "../db/userWorkspace.js";
 
-
 export const getAllUsers = asyncMiddleware(async (req, res) => {
   const query = req.query.query; // Get the query parameter from the request
-  
+
   let users;
   if (query) {
     // If query exists, filter users by both name and email
     users = await User.findAll({
       where: Sequelize.or(
         Sequelize.where(
-          Sequelize.fn('LOWER', Sequelize.col('name')),
-          'LIKE',
+          Sequelize.fn("LOWER", Sequelize.col("name")),
+          "LIKE",
           `%${query.toLowerCase()}%`
         ),
         Sequelize.where(
-          Sequelize.fn('LOWER', Sequelize.col('email')),
-          'LIKE',
+          Sequelize.fn("LOWER", Sequelize.col("email")),
+          "LIKE",
           `%${query.toLowerCase()}%`
         )
       ),
@@ -40,8 +39,6 @@ export const getAllUsers = asyncMiddleware(async (req, res) => {
   res.send(users);
 });
 
-
-
 export const getSelf = asyncMiddleware(async (req, res) => {
   let user = await User.findByPk(req.user.id);
   if (!user) {
@@ -49,7 +46,6 @@ export const getSelf = asyncMiddleware(async (req, res) => {
   }
   res.send(user); // Only send response if the user exists
 });
-
 
 export const deleteUser = asyncMiddleware(async (req, res) => {
   let user = await User.findByPk(req.params.id);
@@ -61,7 +57,7 @@ export const deleteUser = asyncMiddleware(async (req, res) => {
 export const updateSelf = asyncMiddleware(async (req, res) => {
   try {
     let user = await User.findByPk(req.user.id);
-    console.log(user)
+    console.log(user);
     if (!user) {
       return res.status(404).send("User not found!");
     }
@@ -70,8 +66,8 @@ export const updateSelf = asyncMiddleware(async (req, res) => {
     console.log("user", user);
 
     for (let key of Object.keys(req.body)) {
-      console.log("key", key)
-      console.log("has own prop", user.hasOwnProperty(key))
+      console.log("key", key);
+      console.log("has own prop", user.hasOwnProperty(key));
       if (user.dataValues.hasOwnProperty(key)) {
         if (key === "password") {
           let hashedPassword = await bcrypt.hash(req.body[key], 10);
@@ -91,7 +87,6 @@ export const updateSelf = asyncMiddleware(async (req, res) => {
     res.status(500).send("An error occurred while updating the user.");
   }
 });
-
 
 export const updateUser = asyncMiddleware(async (req, res) => {
   let user = await User.findByPk(req.params.id);
@@ -136,10 +131,7 @@ export const createUser = asyncMiddleware(async (req, res) => {
     password: hashedPassword, // Store the hashed password
   });
 
-  let token = JWT.sign(
-    { id: user.id, isAdmin: user.isAdmin },
-    "Imran@12"
-  );
+  let token = JWT.sign({ id: user.id, isAdmin: user.isAdmin }, "Imran@12");
 
   return res.status(201).send({ user, token });
 });
@@ -167,19 +159,18 @@ export async function findOrCreateDesignation(designation) {
   return designationObj;
 }
 
-
 export const addMember = asyncMiddleware(async (req, res) => {
-  const body = req.body
+  const body = req.body;
   const schema = Joi.object({
     name: Joi.string().min(5).max(50).required(),
     email: Joi.string().min(5).max(255).required().email(),
     designation: Joi.string(),
-    projectId : Joi.number(), 
-    workspaceId : Joi.number().required(), 
+    projectId: Joi.number(),
+    workspaceId: Joi.number().required(),
   });
 
   let { error } = schema.validate(req.body);
-  console.log(error)
+  console.log(error);
 
   if (error) return res.status(400).send(error.details[0].message);
 
@@ -193,45 +184,47 @@ export const addMember = asyncMiddleware(async (req, res) => {
     name: req.body.name,
     email: req.body.email,
     password: hashedPassword, // Store the hashed password
-    designationId : designation.id
+    designationId: designation.id,
   });
-  let project
-  if (body.projectId){
+  let project;
+  if (body.projectId) {
     project = await Project.findByPk(body.projectId);
     if (!project) {
       return { success: false, message: "Project does not exist." };
     }
     UserProject.create({
-      projectId : body.projectId,
-      userId : user.id,
-      roleId :1,
-      status : 'active'
-    })
+      projectId: body.projectId,
+      userId: user.id,
+      roleId: 1,
+      status: "active",
+    });
   }
-  if (body.workspaceId){
+  if (body.workspaceId) {
     let workspace = await Workspace.findByPk(body.workspaceId);
     if (!workspace) {
       return { success: false, message: "Workspace does not exist." };
     }
+    let defaultWorkspace = await UserWorkspace.findOne({
+      where: { userId: user.id, isDefault: true },
+    });
+
     UserWorkspace.create({
-      workspaceId : body.workspaceId,
-      userId : user.id,
-      roleId : 1,
-      status : 'active'
-    })
+      workspaceId: body.workspaceId,
+      userId: user.id,
+      roleId: 1,
+      status: "active",
+      isDefault: defaultWorkspace ? false : true,
+    });
   }
 
-  let token = JWT.sign(
-    { id: user.id, isAdmin: user.isAdmin },
-    "Imran@12"
-  );
+  let token = JWT.sign({ id: user.id, isAdmin: user.isAdmin }, "Imran@12");
 
   // const values = {
   //   userName : user.name,
   //   projectName : project.name,
   //   activationLink : 'https://google.com/'
   // }
-  
+
   // const template = generateEmailContent(templates.userOnboard, values)
 
   //   const mailData = {
@@ -252,14 +245,13 @@ export const addMember = asyncMiddleware(async (req, res) => {
   return res.status(201).send(user);
 });
 
-
-export const resetPassword = asyncMiddleware( async (req, res)=> {
+export const resetPassword = asyncMiddleware(async (req, res) => {
   let user = await User.findOne({ where: { email: req.body.email } });
-  if (user){
+  if (user) {
     let hashedPassword = await bcrypt.hash(req.body.password, 10);
-    user.password = hashedPassword
-    user.save()
-    return res.send(user)
+    user.password = hashedPassword;
+    user.save();
+    return res.send(user);
   }
-  return res.send({"msg": "User not found!"})
-})
+  return res.send({ msg: "User not found!" });
+});

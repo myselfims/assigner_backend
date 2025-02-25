@@ -10,7 +10,9 @@ import sequelize from "../db/db.js";
 import { Role } from "../db/roleAndDesignation.js";
 import { generateEmailContent } from "../config/emailTemplates.js";
 import { sendEmail } from "../smtp.js";
-import {createNotification} from '../services/notificationService.js'
+import { createNotification } from "../services/notificationService.js";
+import { generateLogContent } from "../config/activityMessages.js";
+import ActivityLog from "../db/activityLog.js";
 
 export const addProject = asyncMiddleware(async (req, res) => {
   const schema = Joi.object({
@@ -40,22 +42,45 @@ export const addProject = asyncMiddleware(async (req, res) => {
     status: body.status,
     budget: body.budget,
     deadline: body.deadline,
-    priority: body.priority, 
+    priority: body.priority,
     description: body.description, // Example for a description field
     createdBy: req.user.id,
     workspaceId: body.workspaceId,
     // Add other fields as necessary based on your model
   });
-  console.log('Body is ', req.body)
-  if (body.lead){
-    console.log('lead is ', body.lead)
+  console.log("Body is ", req.body);
+  if (body.lead) {
+    console.log("lead is ", body.lead);
     UserProject.create({
-      userId : body.lead,
-      projectId : project.id,
-      roleId : 2
-    })
-    createNotification(body.lead, 'projectLeadAssigned', {projectName : project.name, assignedBy : req.user.name, projectId : project.id}, req.io)
+      userId: body.lead,
+      projectId: project.id,
+      roleId: 2,
+    });
+    createNotification(
+      body.lead,
+      "projectLeadAssigned",
+      {
+        projectName: project.name,
+        assignedBy: req.user.name,
+        projectId: project.id,
+      },
+      req.io
+    );
   }
+
+  // newProjectCreated
+  // New project '{{projectName}}' was created by '{{creatorName}}'
+  let log = generateLogContent("newProjectCreated", {
+    creatorName: req.user.name,
+    projectName: project.name,
+  });
+
+  ActivityLog.create({
+    ...log,
+    entityId: project.id,
+    workspaceId: project.workspaceId,
+    userId: req.user.id,
+  });
 
   const statusPromises = defaultStatuses.map((status) =>
     Status.create({ name: status, projectId: project.id })
@@ -84,7 +109,6 @@ export const getStatuses = async (req, res) => {
     res.status(500).json({ message: "Internal server error." });
   }
 };
-
 
 export const updateStatuses = async (req, res) => {
   const { projectId } = req.params;
@@ -221,7 +245,7 @@ export const getTeamMembers = asyncMiddleware(async (req, res) => {
     tasks.forEach(({ assignedToId, status, totalTasks }) => {
       if (!taskCounts[assignedToId]) {
         taskCounts[assignedToId] = {
-          totalTasks: 0
+          totalTasks: 0,
         };
       }
 
@@ -256,7 +280,7 @@ export const getTeamMembers = asyncMiddleware(async (req, res) => {
       // Add role separately
       flattenedItem["role"] = item["role.name"]; // Assuming role name exists
       flattenedItem["roleId"] = item["role.id"]; // Assuming role name exists
-      flattenedItem['taskCounts'] = taskCounts[userId]
+      flattenedItem["taskCounts"] = taskCounts[userId];
 
       return flattenedItem;
     });
@@ -426,7 +450,6 @@ export const getSingleProject = asyncMiddleware(async (req, res) => {
   }
 });
 
-
 export const removeMember = asyncMiddleware(async (req, res) => {
   try {
     const { projectId, userId } = req.params;
@@ -435,9 +458,13 @@ export const removeMember = asyncMiddleware(async (req, res) => {
     const project = await Project.findByPk(projectId);
     if (!project) return res.status(404).json({ message: "Project not found" });
 
-    const userProject = await UserProject.findOne({ where: { projectId, userId: userId } });
+    const userProject = await UserProject.findOne({
+      where: { projectId, userId: userId },
+    });
     if (!userProject) {
-      return res.status(404).json({ message: "Member not found in this project" });
+      return res
+        .status(404)
+        .json({ message: "Member not found in this project" });
     }
 
     // Get user details
@@ -449,10 +476,9 @@ export const removeMember = asyncMiddleware(async (req, res) => {
     // Remove the member from the project
     await UserProject.destroy({ where: { projectId, userId: userId } });
 
-
     // Generate email content
     const emailContent = generateEmailContent("removedFromProjectTemplate", {
-      userName : user.name,
+      userName: user.name,
       projectName: project.name,
       supportLink: "https://easyassigns.com/support",
     });

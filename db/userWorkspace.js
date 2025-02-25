@@ -31,6 +31,11 @@ export const UserWorkspace = sequelize.define("UserWorkspace", {
       key: "id",
     },
   },
+  isDefault : {
+    type : DataTypes.BOOLEAN,
+    allowNull : false,
+    defaultValue : false
+  },
   status: {
     type: DataTypes.STRING,
     defaultValue: "active",

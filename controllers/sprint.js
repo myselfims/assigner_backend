@@ -1,3 +1,4 @@
+import ActivityLog from "../db/activityLog.js";
 import { Project } from "../db/project.js";
 import { Sprint } from "../db/sprint.js";
 import { Task } from "../db/task.js";
@@ -7,21 +8,23 @@ import Workspace from "../db/workspace.js";
 import { asyncMiddleware } from "../middlewares/async.js";
 import Joi from "joi";
 
-
 // Define schema
 const sprintSchema = Joi.object({
-  id : Joi.number().optional(),
+  id: Joi.number().optional(),
   title: Joi.string().required(),
-  description: Joi.string().allow(null, '').optional(),
-  startDate: Joi.alternatives().try(Joi.date(), Joi.string().empty('')).optional(),
-  endDate: Joi.alternatives().try(Joi.date(), Joi.string().empty('')).optional(),
+  description: Joi.string().allow(null, "").optional(),
+  startDate: Joi.alternatives()
+    .try(Joi.date(), Joi.string().empty(""))
+    .optional(),
+  endDate: Joi.alternatives()
+    .try(Joi.date(), Joi.string().empty(""))
+    .optional(),
   projectId: Joi.number().optional(),
-  status : Joi.string().optional(),
-  index : Joi.number().optional(),
-  updatedAt : Joi.string().optional(),
-  createdAt : Joi.string().optional(),
+  status: Joi.string().optional(),
+  index: Joi.number().optional(),
+  updatedAt: Joi.string().optional(),
+  createdAt: Joi.string().optional(),
 });
-
 
 // Create a new sprint
 export const createSprint = asyncMiddleware(async (req, res) => {
@@ -29,20 +32,37 @@ export const createSprint = asyncMiddleware(async (req, res) => {
     // Validate request body
     const { error, value } = sprintSchema.validate(req.body);
     if (error) {
-      console.log(value)
-      console.log(error)
+      console.log(value);
+      console.log(error);
       return res.status(400).json({ error: error.details[0].message });
     }
 
+    let project = Project.findOne({where : {id : value.projectId}})
+
     // Create sprint
     const sprint = await Sprint.create(value);
+    // sprintCreated
+    if (project){
+      let log = generateLogContent("sprintCreated", {
+        sprintName: value.name,
+        creatorName: req.user.name,
+        projectName: project.name,
+      });
+  
+      ActivityLog.create({
+        ...log,
+        entityId: sprint.id,
+        workspaceId: project.workspaceId,
+        userId: req.user.id,
+      });
+    }
+
     res.status(201).json(sprint);
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Failed to create sprint" });
   }
 });
-
 
 // Get all sprints for a project
 export const getSprintsByProject = asyncMiddleware(async (req, res) => {
@@ -61,8 +81,8 @@ export const updateSprint = asyncMiddleware(async (req, res) => {
     const { id } = req.params;
     const { error, value } = sprintSchema.validate(req.body);
     if (error) {
-      console.log(value)
-      console.log(error)
+      console.log(value);
+      console.log(error);
       return res.status(400).json({ error: error.details[0].message });
     }
 
@@ -146,11 +166,9 @@ export const getSprintTasks = asyncMiddleware(async (req, res) => {
     res.status(200).json(tasks);
   } catch (error) {
     console.error(error);
-    res
-      .status(500)
-      .json({
-        message: "An error occurred while fetching tasks",
-        error: error.message,
-      });
+    res.status(500).json({
+      message: "An error occurred while fetching tasks",
+      error: error.message,
+    });
   }
 });

@@ -33,15 +33,17 @@ export const createWorkspace = asyncMiddleware(async (req, res) => {
     createdBy: req.user.id,
   });
 
-  let log = generateLogContent('newWorkspaceCreated', {workspaceName : value.name, createrName : req.user.name})
+  let log = generateLogContent("newWorkspaceCreated", {
+    workspaceName: value.name,
+    createrName: req.user.name,
+  });
 
   ActivityLog.create({
     ...log,
-    entityId : workspace.id,
-    workspaceId : workspace.id,
-    userId : req.user.id,
-    
-  })
+    entityId: workspace.id,
+    workspaceId: workspace.id,
+    userId: req.user.id,
+  });
 
   const role = await Role.findOne({ where: { name: "Owner" } });
 
@@ -77,24 +79,16 @@ export const getWorkspaces = asyncMiddleware(async (req, res) => {
     });
 
     // Fetch workspaces where the user is assigned
-    const assignedWorkspaces = await User.findOne({
-      where: { id: userId },
+    const assignedWorkspaces = await UserWorkspace.findAll({
+      where: { userId: userId },
       include: {
         model: Workspace,
-        as: "joinedWorkspaces", // Matches the alias in belongsToMany
+        as: "workspace", // Matches the alias in belongsToMany
       },
     });
 
-    // Combine both lists
-    const workspaces = [
-      ...(assignedWorkspaces?.joinedWorkspaces || []).map((workspace) => ({
-        ...workspace.toJSON(),
-        role: "Invited to You",
-      })),
-    ];
-
     // Respond with the combined workspaces
-    res.status(200).json(workspaces);
+    res.status(200).json(assignedWorkspaces);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: err.message });
@@ -199,6 +193,26 @@ export const getUsers = asyncMiddleware(async (req, res) => {
 
     // Respond with the combined projects
     res.status(200).json({ workspaceUsers });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+export const getActivityLogs = asyncMiddleware(async (req, res) => {
+  try {
+    let { workspaceId } = req.params;
+    let logs = await ActivityLog.findAll({ where: { workspaceId }, 
+      include: [
+        {
+          model: User,
+          as: "user", // Fetch the lead details
+          attributes: ["id", "name", "email"], // Only select necessary fields
+        }]
+    });
+    // Respond with the combined projects
+    console.log("logs are : ", logs);
+    res.status(200).json(logs);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: err.message });

@@ -1,5 +1,8 @@
 import { DataTypes } from "sequelize";
 import sequelize from "./db.js";
+import { User } from "./user.js"; // Assuming you have a User model
+import { Project } from "./project.js";
+import { Workspace } from "./workspace.js";
 
 export const ActivityLog = sequelize.define("ActivityLog", {
   id: {
@@ -10,38 +13,57 @@ export const ActivityLog = sequelize.define("ActivityLog", {
   userId: {
     type: DataTypes.INTEGER,
     allowNull: false,
+    references: {
+      model: User, // Enforce foreign key constraint
+      key: "id",
+    },
+    onDelete: "CASCADE", // If user is deleted, remove their logs
   },
   workspaceId: {
     type: DataTypes.INTEGER,
-    allowNull: true, // Set `false` if it's mandatory
+    allowNull: true,
+    references: {
+      model: Workspace,
+      key: "id",
+    },
+    onDelete: "CASCADE",
+  },
+  projectId: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    references: {
+      model: Project,
+      key: "id",
+    },
+    onDelete: "CASCADE",
   },
   action: {
     type: DataTypes.STRING,
-    allowNull: false, // Example: 'Created', 'Updated', 'Deleted'
+    allowNull: false,
   },
   entityType: {
     type: DataTypes.STRING,
-    allowNull: false, // Example: 'Task', 'Project', 'User'
+    allowNull: false,
   },
   entityId: {
     type: DataTypes.INTEGER,
-    allowNull: false, // ID of the affected entity
+    allowNull: false,
   },
   message: {
     type: DataTypes.TEXT,
-    allowNull: false, // Example: 'User John updated Task #23'
+    allowNull: false,
   },
-  redirectUrl : {
+  redirectUrl: {
     type: DataTypes.TEXT,
-    allowNull: true, // Example: 'User John updated Task #23'
+    allowNull: true,
   },
   ipAddress: {
     type: DataTypes.STRING,
-    allowNull: true, // Store IP address if needed for auditing
+    allowNull: true,
   },
   metadata: {
     type: DataTypes.JSON,
-    allowNull: true, // Store additional info like previous values, changes, etc.
+    allowNull: true,
   },
   createdAt: {
     type: DataTypes.DATE,

@@ -15,6 +15,7 @@ import { Message } from "./message.js";
 import { PinnedMessage } from "./pinnedMessage.js";
 import Workspace from "./workspace.js";
 import { UserWorkspace } from "./userWorkspace.js";
+import ActivityLog from "./activityLog.js";
 
 // Define relationships directly on models
 Organization.belongsToMany(Industry, {
@@ -184,6 +185,13 @@ PinnedMessage.belongsTo(Message, { foreignKey: "messageId", as: "message" });
 PinnedMessage.belongsTo(User, { foreignKey: "userId" }); // User who pinned the message
 PinnedMessage.belongsTo(Project, { foreignKey: "projectId" }); // For project messages
 PinnedMessage.belongsTo(User, { foreignKey: "receiverId", as: "Receiver" }); // For direct messages
+
+// Activity Logs
+ActivityLog.belongsTo(User, {
+  as : 'user',
+  foreignKey : 'userId'
+})
+
 
 // Use migrations for schema changes instead of sync({ alter: true })
 async function migrate() {
