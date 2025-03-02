@@ -11,7 +11,7 @@ import { Role } from "../db/roleAndDesignation.js";
 import { generateEmailContent } from "../config/emailTemplates.js";
 import { sendEmail } from "../smtp.js";
 import { createNotification } from "../services/notificationService.js";
-import { generateLogContent } from "../config/activityMessages.js";
+import { createActivityLog } from "../services/activityLogService.js";
 import ActivityLog from "../db/activityLog.js";
 
 export const addProject = asyncMiddleware(async (req, res) => {
@@ -70,17 +70,14 @@ export const addProject = asyncMiddleware(async (req, res) => {
 
   // newProjectCreated
   // New project '{{projectName}}' was created by '{{creatorName}}'
-  let log = generateLogContent("newProjectCreated", {
+  let log = createActivityLog("newProjectCreated", {
     creatorName: req.user.name,
     projectName: project.name,
-  });
-
-  ActivityLog.create({
-    ...log,
-    entityId: project.id,
-    workspaceId: project.workspaceId,
-    userId: req.user.id,
-  });
+    userId : req.user.id,
+    workspaceId : project.workspaceId,
+    entityId : project.id,
+    projectId : project.id
+  }, req.io);
 
   const statusPromises = defaultStatuses.map((status) =>
     Status.create({ name: status, projectId: project.id })
@@ -94,7 +91,7 @@ export const addProject = asyncMiddleware(async (req, res) => {
   });
 });
 
-export const getStatuses = async (req, res) => {
+export const getStatuses = asyncMiddleware( async (req, res) => {
   const { projectId } = req.params;
 
   try {
@@ -108,48 +105,91 @@ export const getStatuses = async (req, res) => {
     console.error(err);
     res.status(500).json({ message: "Internal server error." });
   }
+});
+
+
+export const getActivityLogs = asyncMiddleware(async (req, res) => {
+  try {
+    let { projectId } = req.params;
+    let logs = await ActivityLog.findAll({ where: { projectId }, 
+      include: [
+        {
+          model: User,
+          as: "user", // Fetch the lead details
+          attributes: ["id", "name", "email"], // Only select necessary fields
+        }],
+        order: [["createdAt", "DESC"]] 
+    });
+    console.log('logs fetched...', logs)
+    res.status(200).json(logs);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Update Single Status
+export const updateStatus = async (req, res) => {
+  const { statusId } = req.params;
+  try {
+    const { name } = req.body;
+    const status = await Status.findOne({ where: { id: statusId } });
+
+    if (!status) {
+      return res
+        .status(404)
+        .json({ message: `Status with id ${statusId} not found.` });
+    }
+
+    const oldStatus = status.name;
+    if (oldStatus !== name) {
+      await status.update({ name });
+
+      const project = await Project.findOne({
+        where: { id: status.projectId },
+      });
+      const log = createActivityLog("statusUpdated", {
+        updaterName: req.user.name,
+        oldStatus,
+        newStatus: name,
+        projectName: project.name,
+        userId : req.user.id,
+        entityId : status.id,
+        workspaceId : project.workspaceId,
+        projectId : project.id
+
+      }, req.io);
+
+    }
+
+    res.status(200).json(status);
+  } catch (err) {
+    console.error("Error updating status:", err);
+    res.status(500).json({ message: "Internal server error." });
+  }
 };
 
-export const updateStatuses = async (req, res) => {
+// Create New Status
+export const createStatus = async (req, res) => {
   const { projectId } = req.params;
-
   try {
-    const statuses = req.body.statuses;
+    const { name } = req.body;
+    const project = await Project.findOne({ where: { id: projectId } });
 
-    if (!Array.isArray(statuses)) {
-      return res.status(400).json({ message: "Invalid statuses format." });
+    if (!project) {
+      return res.status(404).json({ message: "Project not found." });
     }
 
-    // Iterate over statuses and handle updates or creations
-    for (let status of statuses) {
-      if (status.id) {
-        // Update existing status
-        const existingStatus = await Status.findOne({
-          where: { id: status.id, projectId },
-        });
+    const newStatus = await Status.create({ name, projectId });
+    const log = generateLogContent("statusCreated", {
+      creatorName: req.user.name,
+      newStatus: name,
+      projectName: project.name,
+    });
 
-        if (existingStatus) {
-          await existingStatus.update({
-            name: status.name,
-            isDefault: status.isDefault,
-          });
-        } else {
-          return res
-            .status(404)
-            .json({ message: `Status with id ${status.id} not found.` });
-        }
-      } else {
-        // Create new status if it doesn't have an ID
-        await Status.create({ name: status.name, projectId });
-      }
-    }
-
-    // Fetch updated statuses to return
-    const updatedStatuses = await Status.findAll({ where: { projectId } });
-
-    res.status(200).json(updatedStatuses);
+    res.status(201).json(newStatus);
   } catch (err) {
-    console.error("Error updating statuses:", err);
+    console.error("Error creating status:", err);
     res.status(500).json({ message: "Internal server error." });
   }
 };

@@ -6,8 +6,9 @@ import { transporter, sendEmail } from "../smtp.js";
 import { generateEmailContent } from "../config/emailTemplates.js";
 import { createNotification } from "../services/notificationService.js";
 import { Project } from "../db/project.js";
-import { generateLogContent } from "../config/activityMessages.js";
+import { createActivityLog } from "../services/activityLogService.js";
 import ActivityLog from "../db/activityLog.js";
+import Workspace from "../db/workspace.js";
 
 let schema = Joi.object({
   sprintId: Joi.number(),
@@ -43,7 +44,7 @@ export const createTask = asyncMiddleware(async (req, res) => {
 
     // Get the count of existing tasks in the project (for zero-based indexing)
     const taskCount = (await Task.count({ where: { projectId } })) + 1;
-    const project = Project.findOne({where : {id : projectId}})
+    const project = Project.findOne({ where: { id: projectId } });
     // Create the task with the correct index
     let task = await Task.create({
       sprintId,
@@ -67,15 +68,19 @@ export const createTask = asyncMiddleware(async (req, res) => {
       req.io
     );
 
-    let log = generateLogContent('taskCreated', {taskName : title, creatorName : creater.name, projectName : project.name})
-
-    ActivityLog.create({
-      ...log,
-      entityId : task.id,
-      workspaceId : project.workspaceId,
-      userId : req.user.id,
-      
-    })
+    let log = createActivityLog(
+      "taskCreated",
+      {
+        taskName: title,
+        creatorName: creater.name,
+        projectName: project.name,
+        userId: req.user.id,
+        projectId: project.id,
+        workspaceId: project.workspaceId,
+        entityId : task.id
+      },
+      req.io
+    );
 
     // Generate email content
     const emailContent = generateEmailContent("assignedTaskTemplate", {

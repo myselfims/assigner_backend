@@ -7,7 +7,7 @@ import { Project } from "../db/project.js";
 import { UserProject } from "../db/userProject.js";
 import { Role } from "../db/roleAndDesignation.js";
 import ActivityLog from "../db/activityLog.js";
-import { generateLogContent } from "../config/activityMessages.js";
+import { createActivityLog } from "../services/activityLogService.js";
 
 export const createWorkspace = asyncMiddleware(async (req, res) => {
   // Validation schema
@@ -33,18 +33,6 @@ export const createWorkspace = asyncMiddleware(async (req, res) => {
     createdBy: req.user.id,
   });
 
-  let log = generateLogContent("newWorkspaceCreated", {
-    workspaceName: value.name,
-    createrName: req.user.name,
-  });
-
-  ActivityLog.create({
-    ...log,
-    entityId: workspace.id,
-    workspaceId: workspace.id,
-    userId: req.user.id,
-  });
-
   const role = await Role.findOne({ where: { name: "Owner" } });
 
   if (!role) {
@@ -67,7 +55,6 @@ export const createWorkspace = asyncMiddleware(async (req, res) => {
 export const getWorkspaces = asyncMiddleware(async (req, res) => {
   try {
     const userId = req.user.id;
-
     // Fetch workspaces created by the user
     const createdWorkspaces = await Workspace.findAll({
       where: { createdBy: userId },
@@ -208,7 +195,8 @@ export const getActivityLogs = asyncMiddleware(async (req, res) => {
           model: User,
           as: "user", // Fetch the lead details
           attributes: ["id", "name", "email"], // Only select necessary fields
-        }]
+        }],
+        order: [["createdAt", "DESC"]] 
     });
     // Respond with the combined projects
     console.log("logs are : ", logs);
@@ -218,3 +206,28 @@ export const getActivityLogs = asyncMiddleware(async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
+export const getUserRole = asyncMiddleware(async (req, res) => {
+  try{
+    let userId = req.user.id;
+    let {workspaceId} = req.params;
+    console.log('fetching user role')
+    let role = await UserWorkspace.findOne({where : {userId, workspaceId},
+      include : {
+        model : Role,
+        as : "role"
+      }
+    })
+
+    if (!role){
+      console.log('user has no role')
+      return res.status(404).json({message : "User has no role for this workspace "})
+
+    }
+    console.log('user has role', role)
+    res.status(200).json(role)
+  }catch(error){
+    console.log(error)
+    res.status(500).json({ error: error.message });
+  }
+})
