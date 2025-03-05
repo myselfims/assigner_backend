@@ -24,7 +24,7 @@ export const initializeSocket = (httpServer) => {
    
 
     handleWorkspaceSocket(io, socket)
-    // handleCommentSocket(io, socket);
+    handleCommentSocket(socket);
     handleChatSocket(socket);
     handleNotificationSocket(socket); // Initialize notifications
 

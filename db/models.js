@@ -15,6 +15,7 @@ import { Message } from "./message.js";
 import { PinnedMessage } from "./pinnedMessage.js";
 import Workspace from "./workspace.js";
 import { UserWorkspace } from "./userWorkspace.js";
+import { Comment } from "./commectAndOtp.js";
 import ActivityLog from "./activityLog.js";
 
 // Define relationships directly on models
@@ -188,6 +189,11 @@ PinnedMessage.belongsTo(User, { foreignKey: "receiverId", as: "Receiver" }); // 
 
 // Activity Logs
 ActivityLog.belongsTo(User, {
+  as : 'user',
+  foreignKey : 'userId'
+})
+
+Comment.belongsTo(User, {
   as : 'user',
   foreignKey : 'userId'
 })

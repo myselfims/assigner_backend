@@ -9,6 +9,7 @@ import { Project } from "../db/project.js";
 import { createActivityLog } from "../services/activityLogService.js";
 import ActivityLog from "../db/activityLog.js";
 import Workspace from "../db/workspace.js";
+import { Comment } from "../db/commectAndOtp.js";
 
 let schema = Joi.object({
   sprintId: Joi.number(),
@@ -221,5 +222,55 @@ export const getActivityLogs = asyncMiddleware( async (req, res)=>{
 
   }catch(error){
     console.log(error)
+  }
+})
+
+export const createComment = asyncMiddleware(async (req, res, next) => {
+  try {
+    const { taskId } = req.params;
+    const { comment } = req.body;
+
+    if (!comment) {
+      return res.status(400).json({ message: "Comment cannot be empty" });
+    }
+
+    const commentObject = await Comment.create({
+      comment,
+      userId: req.user.id,
+      parentId: taskId,
+      parentType: "task",
+    });
+
+    req.io.to(`task-${taskId}`).emit("comment", {
+      id: commentObject.id,
+      comment: commentObject.comment,
+      userId: req.user.id,
+      createdAt: commentObject.createdAt,
+      user : req.user
+    });
+
+    res.status(201).json(commentObject);
+  } catch (error) {
+    console.error("Comment creation failed:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+
+export const getComments =  asyncMiddleware(async (req, res)=>{
+  try{
+    const {taskId} = req.params;
+    const comments = await Comment.findAll({
+      where : {parentId : taskId, parentType : 'task'},
+      include : {
+        model : User,
+        as : 'user'
+      }
+    })
+
+    res.status(200).json(comments)
+  }catch (error) {
+    console.error("Comment fetch failed:", error);
+    res.status(500).json({ message: "Internal server error" });
   }
 })

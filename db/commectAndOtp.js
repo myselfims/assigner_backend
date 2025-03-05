@@ -18,6 +18,7 @@ export const Comment = sequelize.define("Comment", {
     userId: {
       type: DataTypes.INTEGER,
       allowNull: false,
+      references: { model: "Users", key: "id" },
     },
     parentType: {
       type: DataTypes.TEXT,

@@ -1,4 +1,4 @@
-const commentsSocket = (io) => {
+const commentsSocket = (socket) => {
       console.log(`Comment socket connected: ${socket.id}`);
   
       // Join a task comment room
@@ -8,7 +8,8 @@ const commentsSocket = (io) => {
       });
   
       // Handle new comment
-      socket.on("comment", (data) => {
+      socket.on("send:comment", (data) => {
+        console.log(data)
         const { taskId, comment, userId } = data;
   
         if (!taskId || !comment || !userId) {
