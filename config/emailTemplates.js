@@ -89,7 +89,7 @@ export const templates = {
   invitationExistingUserTemplate: {
     subject: "Invitation to Join Project",
     body: `
-      <p>You have been invited to join the project <strong>{{projectName}}</strong>.</p>
+      <p>You have been invited to join the {{projectName}}.</p>
       <p>Please click the button below to accept the invitation:</p>
       <a href="{{invitationLink}}" style="background-color: #007bff; color: white; padding: 10px 15px; text-decoration: none; border-radius: 5px;">
           Accept Invitation

@@ -164,7 +164,7 @@ export const addMember = asyncMiddleware(async (req, res) => {
   const schema = Joi.object({
     name: Joi.string().min(5).max(50).required(),
     email: Joi.string().min(5).max(255).required().email(),
-    designation: Joi.string(),
+    designation: Joi.string().optional(),
     projectId: Joi.number(),
     workspaceId: Joi.number().required(),
   });
@@ -175,10 +175,28 @@ export const addMember = asyncMiddleware(async (req, res) => {
   if (error) return res.status(400).send(error.details[0].message);
 
   let user = await User.findOne({ where: { email: req.body.email } });
-  let template;
+  let project;
+  let workspace;
+
+  if (body.projectId) {
+    project = await Project.findByPk(body.projectId);
+    if (!project) {
+      return { success: false, message: "Project does not exist." };
+    }
+  }
+
+  if (body.workspaceId) {
+    workspace = await Workspace.findByPk(body.workspaceId);
+    if (!workspace) {
+      return { success: false, message: "Workspace does not exist." };
+    }
+  }
+
+  let invitationText = project ? `project <strong> ${project.name} </strong>` : `workspace <strong>${workspace.name}</strong>`
+
   if (user) {
-    template = generateEmailContent('invitationExistingUserTemplate', {projectName, invitationLink : "https://easyassigns.com/"})
-    
+    let template = generateEmailContent('invitationExistingUserTemplate', {userName : user.name, projectName : invitationText, invitationLink : "https://easyassigns.com/"})
+    sendEmail(user.email, template.subject, template.body)
   } else {
     user = await User.create({
       name: req.body.name,
@@ -186,17 +204,15 @@ export const addMember = asyncMiddleware(async (req, res) => {
       password: hashedPassword, // Store the hashed password
       designationId: designation.id,
     });
+    let template = generateEmailContent('invitationExistingUserTemplate', {projectName : project.name, invitationLink : "https://easyassigns.com/"})
+    sendEmail(user.email, template.subject, template.body)
   }
 
   let hashedPassword = await bcrypt.hash("asdfasdf", 10);
   let designation = await findOrCreateDesignation(body.designation);
 
-  let project;
-  if (body.projectId) {
-    project = await Project.findByPk(body.projectId);
-    if (!project) {
-      return { success: false, message: "Project does not exist." };
-    }
+
+  if (project) {
     UserProject.create({
       projectId: body.projectId,
       userId: user.id,
@@ -204,11 +220,7 @@ export const addMember = asyncMiddleware(async (req, res) => {
       status: "active",
     });
   }
-  if (body.workspaceId) {
-    let workspace = await Workspace.findByPk(body.workspaceId);
-    if (!workspace) {
-      return { success: false, message: "Workspace does not exist." };
-    }
+  if (workspace) {
     let defaultWorkspace = await UserWorkspace.findOne({
       where: { userId: user.id, isDefault: true },
     });
