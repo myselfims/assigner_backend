@@ -17,6 +17,7 @@ let schema = Joi.object({
   description: Joi.string().optional(),
   deadline: Joi.date().required(),
   assignedToId: Joi.number().required(),
+  rank : Joi.number(),
 });
 
 export const getAllTasks = asyncMiddleware(async (req, res) => {
@@ -139,7 +140,8 @@ export const update = asyncMiddleware(async (req, res) => {
     if (task[key]) {
       task[key] = req.body[key];
     } else {
-      return res.status(400).send(`${key} not allowed!`);
+      console.log("task[key]",key)
+      continue
     }
   }
 
@@ -199,3 +201,25 @@ export const update = asyncMiddleware(async (req, res) => {
 
   res.send(task);
 });
+
+
+export const getActivityLogs = asyncMiddleware( async (req, res)=>{
+  try{
+    const {taskId} = req.params;
+    const logs = await ActivityLog.findAll({
+      where : { entityId : taskId, entityType : 'task' },
+      include: [
+        {
+          model: User,
+          as: "user", // Fetch the lead details
+          attributes: ["id", "name", "email"], // Only select necessary fields
+        }],
+        order: [["createdAt", "DESC"]] 
+
+    })
+    res.status(200).json(logs)
+
+  }catch(error){
+    console.log(error)
+  }
+})

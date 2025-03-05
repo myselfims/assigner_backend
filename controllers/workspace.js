@@ -186,6 +186,34 @@ export const getUsers = asyncMiddleware(async (req, res) => {
   }
 });
 
+
+export const updateMember = asyncMiddleware(async (req, res) => {
+  try {
+    const { workspaceId, userId } = req.params;
+    const { roleId } = req.body;
+
+    // Fetch user projects and include the associated user object
+    const userWorkspace = await UserWorkspace.findOne({
+      where: { workspaceId, userId },
+    });
+
+    if (!userWorkspace){
+      return res.status(404).json({message : "User has not associated to the workspace!"})
+    }
+
+    userWorkspace.status = "active";
+    userWorkspace.roleId = parseInt(roleId);
+    userWorkspace.save();
+
+    res.status(200).json(userWorkspace);
+  } catch (error) {
+    console.error("Error fetching team members:", error);
+    res
+      .status(500)
+      .json({ error: "An error occurred while fetching team members" });
+  }
+});
+
 export const getActivityLogs = asyncMiddleware(async (req, res) => {
   try {
     let { workspaceId } = req.params;

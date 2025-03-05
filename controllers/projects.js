@@ -344,6 +344,10 @@ export const updateMember = asyncMiddleware(async (req, res) => {
       where: { projectId, userId },
     });
 
+    if (!userProject){
+      return res.status(404).json({message : "User has not associated to the project!"})
+    }
+
     userProject.status = "active";
     userProject.roleId = parseInt(roleId);
     userProject.save();

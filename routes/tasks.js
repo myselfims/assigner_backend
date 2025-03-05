@@ -7,6 +7,7 @@ import {
   getTask,
   update,
   updateFull,
+  getActivityLogs
 } from "../controllers/tasks.js";
 
 const router = express.Router();
@@ -17,6 +18,7 @@ router.get("/:projectId", auth(), getAllTasks).post("/", auth(true), createTask)
 
 router
   .get("/:id", auth(true), getTask)
+  .get("/:taskId/activity-logs", auth(true), getActivityLogs)
 
   .delete("/:id", auth(true), deleteTask)
 

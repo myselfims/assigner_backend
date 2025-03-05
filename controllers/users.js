@@ -174,18 +174,23 @@ export const addMember = asyncMiddleware(async (req, res) => {
 
   if (error) return res.status(400).send(error.details[0].message);
 
-  let check = await User.findOne({ where: { email: req.body.email } });
-  if (check) return res.status(400).send("User already exist!");
+  let user = await User.findOne({ where: { email: req.body.email } });
+  let template;
+  if (user) {
+    template = generateEmailContent('invitationExistingUserTemplate', {projectName, invitationLink : "https://easyassigns.com/"})
+    
+  } else {
+    user = await User.create({
+      name: req.body.name,
+      email: req.body.email,
+      password: hashedPassword, // Store the hashed password
+      designationId: designation.id,
+    });
+  }
 
   let hashedPassword = await bcrypt.hash("asdfasdf", 10);
   let designation = await findOrCreateDesignation(body.designation);
 
-  const user = await User.create({
-    name: req.body.name,
-    email: req.body.email,
-    password: hashedPassword, // Store the hashed password
-    designationId: designation.id,
-  });
   let project;
   if (body.projectId) {
     project = await Project.findByPk(body.projectId);
@@ -219,29 +224,6 @@ export const addMember = asyncMiddleware(async (req, res) => {
 
   let token = JWT.sign({ id: user.id, isAdmin: user.isAdmin }, "Imran@12");
 
-  // const values = {
-  //   userName : user.name,
-  //   projectName : project.name,
-  //   activationLink : 'https://google.com/'
-  // }
-
-  // const template = generateEmailContent(templates.userOnboard, values)
-
-  //   const mailData = {
-  //     from:'riseimstechnologies@gmail.com',
-  //     to: user.email, // list of receivers
-  //     subject: template.subject,
-  //     text: "",
-  //     html: template.body,
-  //   };
-
-  //   let emailSent = await sendEmail(mailData)
-  //   if (emailSent) {
-  //     console.log("Email sent success")
-  //   } else {
-  //     console.log('Error in email sending.')
-  //   }
-
   return res.status(201).send(user);
 });
 
@@ -254,4 +236,20 @@ export const resetPassword = asyncMiddleware(async (req, res) => {
     return res.send(user);
   }
   return res.send({ msg: "User not found!" });
+});
+
+export const checkUserExistence = asyncMiddleware(async (req, res) => {
+  const schema = Joi.object({
+    email: Joi.string().min(5).max(255).required().email(),
+  });
+
+  let { error } = schema.validate(req.body);
+
+  if (error) return res.status(400).send(error.details[0].message);
+
+  let user = await User.findOne({ where: { email: req.body.email } });
+
+  if (!user) return res.status(404).send("User does not exist!");
+
+  return res.status(200).send(user);
 });

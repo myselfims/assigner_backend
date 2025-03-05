@@ -7,6 +7,7 @@ import { UserProject } from "../db/userProject.js";
 import Workspace from "../db/workspace.js";
 import { asyncMiddleware } from "../middlewares/async.js";
 import Joi from "joi";
+import { createActivityLog } from "../services/activityLogService.js";
 
 // Define schema
 const sprintSchema = Joi.object({
@@ -43,18 +44,17 @@ export const createSprint = asyncMiddleware(async (req, res) => {
     const sprint = await Sprint.create(value);
     // sprintCreated
     if (project){
-      let log = generateLogContent("sprintCreated", {
+      let log = createActivityLog("sprintCreated", {
         sprintName: value.name,
         creatorName: req.user.name,
         projectName: project.name,
-      });
-  
-      ActivityLog.create({
-        ...log,
-        entityId: sprint.id,
-        workspaceId: project.workspaceId,
-        userId: req.user.id,
-      });
+        userId : req.user.id,
+        entityId : sprint.id,
+        workspaceId : project.workspaceId,
+        projectId : project.id
+      }, req.io);
+
+      
     }
 
     res.status(201).json(sprint);
