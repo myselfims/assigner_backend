@@ -259,3 +259,36 @@ export const getUserRole = asyncMiddleware(async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 })
+
+export const updateWorkspace = asyncMiddleware(async (req, res) => {
+  try {
+    const { workspaceId } = req.params;
+    const workspace = await Workspace.findOne({ where: { id: workspaceId } });
+
+    if (!workspace) {
+      return res.status(404).json({ message: "Workspace not found" });
+    }
+
+    Object.keys(req.body).forEach((key) => {
+      if (workspace[key] !== undefined) {
+        workspace[key] = req.body[key];
+      }
+    });
+
+    await workspace.save();
+
+    createActivityLog('workspaceUpdated', {
+      userId : req.user.id,
+      workspaceId : workspace.id,
+      workspaceName : workspace.name,
+      editorName : req.user.name,
+      entityId : workspace.id,
+      entityType : 'workspace'
+    }, req.io)
+
+    res.status(200).json(workspace);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});

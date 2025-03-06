@@ -7,11 +7,13 @@ import {
   getUsers,
   getActivityLogs,
   getUserRole,
-  updateMember
+  updateMember,
+  updateWorkspace
 } from "../controllers/workspace.js";
 
 const router = express.Router();
 router.get("/", auth(), getWorkspaces);
+router.patch("/:workspaceId", auth(), updateWorkspace);
 router.get("/:workspaceId/role", auth(), getUserRole);
 router.get("/:workspaceId/role", auth(), getUserRole);
 router.get("/:workspaceId/activity-logs", auth(), getActivityLogs);
