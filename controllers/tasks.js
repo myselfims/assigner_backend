@@ -234,6 +234,27 @@ export const createComment = asyncMiddleware(async (req, res, next) => {
       return res.status(400).json({ message: "Comment cannot be empty" });
     }
 
+    const task = await Task.findOne({
+      where : {id : taskId}
+    })
+    const project = await Project.findOne({
+      where : {id : task.projectId}
+    })
+
+    const extractMentionedUsers = (text) => {
+      const mentionRegex = /@\[(.*?)\]\((\d+)\)/g;
+      const mentions = [];
+      let match;
+      while ((match = mentionRegex.exec(text)) !== null) {
+        mentions.push({ userId: parseInt(match[2], 10), name: match[1] });
+      }
+      return mentions;
+    };
+
+    const mentionedUserIds = extractMentionedUsers(comment);
+
+    console.log("mentionedUserIds", mentionedUserIds)
+
     const commentObject = await Comment.create({
       comment,
       userId: req.user.id,
@@ -241,12 +262,16 @@ export const createComment = asyncMiddleware(async (req, res, next) => {
       parentType: "task",
     });
 
+    mentionedUserIds.forEach(async (mention) => {
+      createNotification(mention.userId, "mentionInComment", {userName : req.user.name, taskId, projectId : task.projectId, workspaceId : project.workspaceId }, req.io) 
+    })
+
     req.io.to(`task-${taskId}`).emit("comment", {
       id: commentObject.id,
       comment: commentObject.comment,
       userId: req.user.id,
       createdAt: commentObject.createdAt,
-      user : req.user
+      user: req.user,
     });
 
     res.status(201).json(commentObject);
@@ -255,6 +280,7 @@ export const createComment = asyncMiddleware(async (req, res, next) => {
     res.status(500).json({ message: "Internal server error" });
   }
 });
+
 
 
 export const getComments =  asyncMiddleware(async (req, res)=>{

@@ -21,13 +21,14 @@ const notificationConfig = {
     type: "success",
     priority: 2,
   },
+  
   taskUpdated: {
     title: "Task Updated",
     message:
       "The task {{taskName}} has been updated by {{updatedBy}} in project {{projectName}}.",
     type: "info",
     priority: 2,
-    redirectUrl : '/project/{{projectId}}/action-items/{{taskId}}'
+    redirectUrl: "/{{workspaceId}}/project/{{projectId}}/action-items?selectedItem={{taskId}}&selectedTab=comments",
   },
 
   commentAdded: {
@@ -37,10 +38,11 @@ const notificationConfig = {
     priority: 3,
   },
   mentionInComment: {
-    title: "You Were Mentioned",
-    message: "You have been mentioned in a comment.",
+    title: "Mentioned in Comment",
+    message: `You were mentioned in a comment by {{userName}}.`,
     type: "info",
-    priority: 3,
+    priority: 2,
+    redirectUrl: "/{{workspaceId}}/project/{{projectId}}/action-items?selectedItem={{taskId}}&selectedTab=comments",
   },
   dueDateReminder: {
     title: "Task Due Soon",
@@ -84,6 +86,8 @@ const notificationConfig = {
     type: "error",
     priority: 1,
   },
+
+
 };
 
 export default notificationConfig;

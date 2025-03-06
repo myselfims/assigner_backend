@@ -23,7 +23,7 @@ export const Comment = sequelize.define("Comment", {
     parentType: {
       type: DataTypes.TEXT,
       allowNull: false,
-    },
+    }
   });
   
   export const OTP = sequelize.define("OTP", {

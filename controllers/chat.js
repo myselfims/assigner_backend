@@ -200,6 +200,35 @@ export const deleteMessage = asyncMiddleware(async (req, res) => {
   }
 });
 
+export const updateMessage = asyncMiddleware(async (req, res) => {
+  try {
+    const { messageId } = req.params;
+    const { message } = req.body;
+
+    if (!message) {
+      return res.status(400).json({ message: "Message cannot be empty" });
+    }
+
+    const messageObj = await Message.findOne({
+      where: { id: messageId },
+    });
+
+    if (!messageObj) {
+      return res.status(404).json({ message: "Message not found" });
+    }
+
+    messageObj.content = message;
+    await messageObj.save();
+
+    res
+      .status(200)
+      .json({ message: "Message updated successfully", data: messageObj });
+  } catch (error) {
+    console.error("Message update failed:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
 export const getPinnedMessages = asyncMiddleware(async (req, res) => {
   try {
     const userId = req.user.id; // Extract userId from auth middleware
@@ -363,20 +392,19 @@ export const markMessagesAsRead = asyncMiddleware(async (req, res) => {
   }
 });
 
-
 export const getRecentMessages = async (req, res) => {
   try {
     const { workspaceId } = req.query;
-    const requesterId = req.user.id
+    const requesterId = req.user.id;
     // Find all users in the workspace
     const workspaceUsers = await UserWorkspace.findAll({
       where: { workspaceId: workspaceId },
     });
 
-    console.log('Workspace users found', workspaceUsers.length)
+    console.log("Workspace users found", workspaceUsers.length);
     // Extract user IDs
-    const userIds = workspaceUsers.map(user => user.userId);
-    console.log('user ids', userIds)
+    const userIds = workspaceUsers.map((user) => user.userId);
+    console.log("user ids", userIds);
     // Fetch recent messages for each user
     const messagesArray = await Promise.all(
       userIds.map(async (userId) => {
@@ -394,7 +422,10 @@ export const getRecentMessages = async (req, res) => {
     );
 
     // Convert array of objects into a single object & remove nulls
-    const messages = Object.assign({}, ...messagesArray.filter(msg => msg !== null));
+    const messages = Object.assign(
+      {},
+      ...messagesArray.filter((msg) => msg !== null)
+    );
 
     res.status(200).json(messages);
   } catch (error) {
@@ -402,5 +433,3 @@ export const getRecentMessages = async (req, res) => {
     res.status(500).json({ message: "Error fetching recent messages" });
   }
 };
-
-
