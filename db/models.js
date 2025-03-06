@@ -17,6 +17,7 @@ import Workspace from "./workspace.js";
 import { UserWorkspace } from "./userWorkspace.js";
 import { Comment } from "./commectAndOtp.js";
 import ActivityLog from "./activityLog.js";
+import { Request } from "./request.js";
 
 // Define relationships directly on models
 Organization.belongsToMany(Industry, {
@@ -198,6 +199,16 @@ Comment.belongsTo(User, {
   foreignKey : 'userId'
 })
 
+// Request
+
+Workspace.hasMany(Request, { foreignKey: "workspaceId" });
+User.hasMany(Request, { foreignKey: "requesterId", as: "Requesters" });
+User.hasMany(Request, { foreignKey: "targetUserId", as: "Targets" });
+Request.belongsTo(Workspace, { foreignKey: "workspaceId" });
+Request.belongsTo(User, { foreignKey: "requesterId", as: "Requester" });
+Request.belongsTo(User, { foreignKey: "targetUserId", as: "Target" });
+
+
 
 // Use migrations for schema changes instead of sync({ alter: true })
 async function migrate() {
@@ -211,4 +222,4 @@ async function migrate() {
   }
 }
 
-migrate();
+// migrate();

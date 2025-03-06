@@ -61,3 +61,23 @@ export const getIndustries = asyncMiddleware(async (req, res) => {
     }
   });
   
+export const createRequest = asyncMiddleware(async (req, res) => {
+
+  try{
+    const { workspaceId, targetUserId, type } = req.body;
+    const requesterId = req.user.id; // From JWT
+  
+    const request = await Request.create({
+      workspaceId,
+      requesterId,
+      targetUserId,
+      type,
+      status: "Pending",
+    });
+  
+    res.status(201).json({ message: "Request created", request });
+
+  }catch(error){
+    
+  }
+})
