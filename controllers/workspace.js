@@ -8,6 +8,9 @@ import { UserProject } from "../db/userProject.js";
 import { Role } from "../db/roleAndDesignation.js";
 import ActivityLog from "../db/activityLog.js";
 import { createActivityLog } from "../services/activityLogService.js";
+import bcrypt from "bcrypt";
+import { Request } from "../db/request.js";
+import { createNotification } from "../services/notificationService.js";
 
 export const createWorkspace = asyncMiddleware(async (req, res) => {
   // Validation schema
@@ -186,7 +189,6 @@ export const getUsers = asyncMiddleware(async (req, res) => {
   }
 });
 
-
 export const updateMember = asyncMiddleware(async (req, res) => {
   try {
     const { workspaceId, userId } = req.params;
@@ -197,8 +199,10 @@ export const updateMember = asyncMiddleware(async (req, res) => {
       where: { workspaceId, userId },
     });
 
-    if (!userWorkspace){
-      return res.status(404).json({message : "User has not associated to the workspace!"})
+    if (!userWorkspace) {
+      return res
+        .status(404)
+        .json({ message: "User has not associated to the workspace!" });
     }
 
     userWorkspace.status = "active";
@@ -217,14 +221,16 @@ export const updateMember = asyncMiddleware(async (req, res) => {
 export const getActivityLogs = asyncMiddleware(async (req, res) => {
   try {
     let { workspaceId } = req.params;
-    let logs = await ActivityLog.findAll({ where: { workspaceId }, 
+    let logs = await ActivityLog.findAll({
+      where: { workspaceId },
       include: [
         {
           model: User,
           as: "user", // Fetch the lead details
           attributes: ["id", "name", "email"], // Only select necessary fields
-        }],
-        order: [["createdAt", "DESC"]] 
+        },
+      ],
+      order: [["createdAt", "DESC"]],
     });
     // Respond with the combined projects
     console.log("logs are : ", logs);
@@ -236,29 +242,31 @@ export const getActivityLogs = asyncMiddleware(async (req, res) => {
 });
 
 export const getUserRole = asyncMiddleware(async (req, res) => {
-  try{
+  try {
     let userId = req.user.id;
-    let {workspaceId} = req.params;
-    console.log('fetching user role')
-    let role = await UserWorkspace.findOne({where : {userId, workspaceId},
-      include : {
-        model : Role,
-        as : "role"
-      }
-    })
+    let { workspaceId } = req.params;
+    console.log("fetching user role");
+    let role = await UserWorkspace.findOne({
+      where: { userId, workspaceId },
+      include: {
+        model: Role,
+        as: "role",
+      },
+    });
 
-    if (!role){
-      console.log('user has no role')
-      return res.status(404).json({message : "User has no role for this workspace "})
-
+    if (!role) {
+      console.log("user has no role");
+      return res
+        .status(404)
+        .json({ message: "User has no role for this workspace " });
     }
-    console.log('user has role', role)
-    res.status(200).json(role)
-  }catch(error){
-    console.log(error)
+    console.log("user has role", role);
+    res.status(200).json(role);
+  } catch (error) {
+    console.log(error);
     res.status(500).json({ error: error.message });
   }
-})
+});
 
 export const updateWorkspace = asyncMiddleware(async (req, res) => {
   try {
@@ -277,18 +285,92 @@ export const updateWorkspace = asyncMiddleware(async (req, res) => {
 
     await workspace.save();
 
-    createActivityLog('workspaceUpdated', {
-      userId : req.user.id,
-      workspaceId : workspace.id,
-      workspaceName : workspace.name,
-      editorName : req.user.name,
-      entityId : workspace.id,
-      entityType : 'workspace'
-    }, req.io)
+    createActivityLog(
+      "workspaceUpdated",
+      {
+        userId: req.user.id,
+        workspaceId: workspace.id,
+        workspaceName: workspace.name,
+        editorName: req.user.name,
+        entityId: workspace.id,
+        entityType: "workspace",
+      },
+      req.io
+    );
 
     res.status(200).json(workspace);
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+export const transferOwnership = asyncMiddleware(async (req, res) => {
+  try {
+    let { name, email, message } = req.body;
+    const { workspaceId } = req.params;
+
+    const workspace = await Workspace.findOne({ where: { id: workspaceId } });
+    if (!workspace) {
+      return res.status(404).send("Workspace not found");
+    }
+
+    const requestMessage = `${req.user.name} wants to transfer the ownership of the workspace '${workspace.name}' to you.`;
+
+    let user = await User.findOne({ where: { email } });
+    if (!user) {
+      let hashedPassword = await bcrypt.hash("asdfasdf", 10);
+      user = await User.create({
+        name,
+        email,
+        password: hashedPassword, 
+      });
+      // let template = generateEmailContent("invitationExistingUserTemplate", {
+      //   projectName: project.name,
+      //   invitationLink: "https://easyassigns.com/",
+      // });
+      // sendEmail(user.email, template.subject, template.body);
+    }
+
+    if (message) {
+      message = { requesterMessage: message };
+    }
+
+    const request = await Request.create({
+      type: "Ownership Transfer",
+      requesterId: req.user.id,
+      targetUserId: user.id,
+      workspaceId,
+      message: requestMessage,
+      metadata: message,
+    });
+
+    createNotification(user.id, 'transferWorkspaceOwnership', {workspaceName : workspace.name, requesterName : req.user.name}, req.io)
+
+    return res.status(201).json(request);
+  } catch (error) {
+    console.error(error);
+    return res.status(500).send("Internal server error");
+  }
+});
+
+export const getTransferRequest = asyncMiddleware(async (req, res) => {
+  try {
+    const { workspaceId } = req.params;
+
+    const request = await Request.findOne({ where: { workspaceId, type : 'Ownership Transfer', status: "pending" },
+      include : {
+        model : User,
+        as : 'target'
+      }
+    });
+    if (!request) {
+      return res.status(404).send("Transfer request not found");
+    }
+
+    return res.status(201).json( request);
+  } catch (error) {
+    console.error(error);
+    return res.status(500).send("Internal server error");
   }
 });

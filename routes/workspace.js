@@ -8,7 +8,9 @@ import {
   getActivityLogs,
   getUserRole,
   updateMember,
-  updateWorkspace
+  updateWorkspace,
+  transferOwnership,
+  getTransferRequest
 } from "../controllers/workspace.js";
 
 const router = express.Router();
@@ -19,6 +21,8 @@ router.get("/:workspaceId/role", auth(), getUserRole);
 router.get("/:workspaceId/activity-logs", auth(), getActivityLogs);
 router.get("/:workspaceId/projects", auth(), getProjects);
 router.get("/:workspaceId/users", auth(), getUsers);
+router.post("/:workspaceId/transfer-ownership", auth(), transferOwnership);
+router.get("/:workspaceId/transfer-request", auth(), getTransferRequest);
 router.patch("/:workspaceId/members/:userId", auth(), updateMember);
 router.post("/", auth(), createWorkspace);
 

@@ -205,8 +205,8 @@ Workspace.hasMany(Request, { foreignKey: "workspaceId" });
 User.hasMany(Request, { foreignKey: "requesterId", as: "Requesters" });
 User.hasMany(Request, { foreignKey: "targetUserId", as: "Targets" });
 Request.belongsTo(Workspace, { foreignKey: "workspaceId" });
-Request.belongsTo(User, { foreignKey: "requesterId", as: "Requester" });
-Request.belongsTo(User, { foreignKey: "targetUserId", as: "Target" });
+Request.belongsTo(User, { foreignKey: "requesterId", as: "requester" });
+Request.belongsTo(User, { foreignKey: "targetUserId", as: "target" });
 
 
 

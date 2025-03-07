@@ -1,4 +1,29 @@
 const notificationConfig = {
+
+  transferWorkspaceOwnership : {
+    title: "Ownership Transfer Request",
+    message:
+      "{{requesterName}} wants to transfer the ownership of the workspace '{{workspaceName}}' to you.",
+    type: "info",
+    priority: 3,
+    redirectUrl : "/showModal=requestModal"
+  },
+  transferWorkspaceRejected : {
+    title: "Ownership Transfer Rejected",
+    message:
+      "{{name}} has rejected the ownership transfer request for the workspace '{{workspaceName}}'.",
+    type: "warning",
+    priority: 3,
+    redirectUrl : "/showModal=requestModal"
+  },
+  transferWorkspaceAccepted : {
+    title: "Ownership Transfer Accepted",
+    message:
+      "{{name}} has accepted the ownership transfer request for the workspace '{{workspaceName}}'.",
+    type: "success",
+    priority: 3,
+    redirectUrl : "/showModal=requestModal"
+  },
   newTaskAssigned: {
     title: "New Task Assigned",
     message:

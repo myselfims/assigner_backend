@@ -7,6 +7,10 @@ export const Request = sequelize.define("Request", {
     autoIncrement: true,
     primaryKey: true,
   },
+  message: {
+    type: DataTypes.STRING,
+    allowNull: true, // Optional message
+  },
   workspaceId: {
     type: DataTypes.INTEGER,
     allowNull: false,
@@ -39,9 +43,9 @@ export const Request = sequelize.define("Request", {
     allowNull: false,
   },
   status: {
-    type: DataTypes.ENUM("Pending", "Approved", "Rejected"),
-    defaultValue: "Pending",
-  },
+    type: DataTypes.ENUM("pending", "approved", "rejected", "cancelled"),
+    defaultValue: "pending",
+  },  
   metadata: {
     type: DataTypes.JSON,
     allowNull: true, // Store extra information like message or custom data
