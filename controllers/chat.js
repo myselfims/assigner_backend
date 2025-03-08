@@ -11,7 +11,7 @@ export const getRoomId = (user1, user2) => {
 
 export const sendMessage = asyncMiddleware(async (req, res) => {
   try {
-    const { type, projectId, receiverId, content } = req.body;
+    const { type, projectId, receiverId, content, workspaceId } = req.body;
     const senderId = req.user.id;
 
     if (!content)
@@ -26,6 +26,7 @@ export const sendMessage = asyncMiddleware(async (req, res) => {
       senderId,
       receiverId,
       projectId,
+      workspaceId,
       content,
       type,
     });
@@ -345,9 +346,10 @@ export const getUnreadCounts = asyncMiddleware(async (req, res) => {
   console.log("unread user id");
   try {
     const userId = req.user.id; // Get logged-in user ID
+    const { workspaceId } = req.query;
     // Fetch unread counts grouped by senderId
     const unreadCounts = await Message.findAll({
-      where: { receiverId: userId, isRead: false },
+      where: { receiverId: userId, isRead: false, workspaceId },
       attributes: [
         "senderId",
         [Sequelize.fn("COUNT", Sequelize.col("id")), "unreadCount"],

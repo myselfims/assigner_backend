@@ -1,5 +1,5 @@
 import express from "express";
-import { addProject, getProjects, getStatuses, getTeamMembers, updateMember, getSingleProject, getMemberRole, removeMember, updateStatus, createStatus, getActivityLogs } from "../controllers/projects.js";
+import { addProject, getProjects, getStatuses, getTeamMembers, updateMember, getSingleProject, getMemberRole, removeMember, updateStatus, createStatus, getActivityLogs, createCalendarEvent, getCalendarEvents, deleteCalendarEvent } from "../controllers/projects.js";
 import auth from "../middlewares/auth.js";
 
 const router = express.Router()
@@ -16,6 +16,9 @@ router
 .patch('/team/:projectId/:userId', auth(), updateMember)
 .get('/:projectId/member/role', auth(), getMemberRole)
 .delete('/team/:projectId/:userId', auth(), removeMember)
+.post('/:projectId/calendar', auth(), createCalendarEvent)
+.get('/:projectId/calendar/:day', auth(), getCalendarEvents)
+.delete('/:projectId/calendar/:eventId', auth(), deleteCalendarEvent);
 
 
 

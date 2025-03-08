@@ -13,6 +13,8 @@ import { sendEmail } from "../smtp.js";
 import { createNotification } from "../services/notificationService.js";
 import { createActivityLog } from "../services/activityLogService.js";
 import ActivityLog from "../db/activityLog.js";
+import { CalendarEvent } from "../db/calendarEvent.js";
+import { Op } from "sequelize";
 
 export const addProject = asyncMiddleware(async (req, res) => {
   const schema = Joi.object({
@@ -70,14 +72,18 @@ export const addProject = asyncMiddleware(async (req, res) => {
 
   // newProjectCreated
   // New project '{{projectName}}' was created by '{{creatorName}}'
-  let log = createActivityLog("newProjectCreated", {
-    creatorName: req.user.name,
-    projectName: project.name,
-    userId : req.user.id,
-    workspaceId : project.workspaceId,
-    entityId : project.id,
-    projectId : project.id
-  }, req.io);
+  let log = createActivityLog(
+    "newProjectCreated",
+    {
+      creatorName: req.user.name,
+      projectName: project.name,
+      userId: req.user.id,
+      workspaceId: project.workspaceId,
+      entityId: project.id,
+      projectId: project.id,
+    },
+    req.io
+  );
 
   const statusPromises = defaultStatuses.map((status) =>
     Status.create({ name: status, projectId: project.id })
@@ -91,7 +97,7 @@ export const addProject = asyncMiddleware(async (req, res) => {
   });
 });
 
-export const getStatuses = asyncMiddleware( async (req, res) => {
+export const getStatuses = asyncMiddleware(async (req, res) => {
   const { projectId } = req.params;
 
   try {
@@ -107,20 +113,21 @@ export const getStatuses = asyncMiddleware( async (req, res) => {
   }
 });
 
-
 export const getActivityLogs = asyncMiddleware(async (req, res) => {
   try {
     let { projectId } = req.params;
-    let logs = await ActivityLog.findAll({ where: { projectId }, 
+    let logs = await ActivityLog.findAll({
+      where: { projectId },
       include: [
         {
           model: User,
           as: "user", // Fetch the lead details
           attributes: ["id", "name", "email"], // Only select necessary fields
-        }],
-        order: [["createdAt", "DESC"]] 
+        },
+      ],
+      order: [["createdAt", "DESC"]],
     });
-    console.log('logs fetched...', logs)
+    console.log("logs fetched...", logs);
     res.status(200).json(logs);
   } catch (err) {
     console.error(err);
@@ -148,18 +155,20 @@ export const updateStatus = async (req, res) => {
       const project = await Project.findOne({
         where: { id: status.projectId },
       });
-      const log = createActivityLog("statusUpdated", {
-        updaterName: req.user.name,
-        oldStatus,
-        newStatus: name,
-        projectName: project.name,
-        userId : req.user.id,
-        entityId : status.id,
-        workspaceId : project.workspaceId,
-        projectId : project.id
-
-      }, req.io);
-
+      const log = createActivityLog(
+        "statusUpdated",
+        {
+          updaterName: req.user.name,
+          oldStatus,
+          newStatus: name,
+          projectName: project.name,
+          userId: req.user.id,
+          entityId: status.id,
+          workspaceId: project.workspaceId,
+          projectId: project.id,
+        },
+        req.io
+      );
     }
 
     res.status(200).json(status);
@@ -344,8 +353,10 @@ export const updateMember = asyncMiddleware(async (req, res) => {
       where: { projectId, userId },
     });
 
-    if (!userProject){
-      return res.status(404).json({message : "User has not associated to the project!"})
+    if (!userProject) {
+      return res
+        .status(404)
+        .json({ message: "User has not associated to the project!" });
     }
 
     userProject.status = "active";
@@ -537,4 +548,106 @@ export const removeMember = asyncMiddleware(async (req, res) => {
   }
 });
 
+export const createCalendarEvent = asyncMiddleware(async (req, res) => {
+  try {
+    const { projectId } = req.params;
+    const { title, description, eventDate, type } = req.body;
 
+    // Validate required fields
+    if (!title || !eventDate) {
+      return res
+        .status(400)
+        .json({ error: "Title and event date are required." });
+    }
+
+    // Create event
+    const event = await CalendarEvent.create({
+      userId: req.user.id,
+      projectId,
+      title,
+      description,
+      eventDate,
+      type,
+      createdBy: req.user.id,
+    });
+
+    res.status(201).json({ message: "Event created successfully", event });
+  } catch (error) {
+    console.error("Error creating calendar event:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+export const getCalendarEvents = asyncMiddleware(async (req, res) => {
+  try {
+    const { projectId, day } = req.params;
+
+    // Check if 'day' is a full date (YYYY-MM-DD) or just a month (YYYY-MM)
+    if (day.length === 10) {
+      // Fetch events for a specific day
+      const startOfDay = `${day} 00:00:00`;
+      const endOfDay = `${day} 23:59:59`;
+
+      const events = await CalendarEvent.findAll({
+        where: {
+          projectId,
+          eventDate: {
+            [Op.between]: [startOfDay, endOfDay],
+          },
+        },
+      });
+
+      return res.status(200).json(events);
+    } else if (day.length === 7) {
+      // Fetch events for the entire month
+      const startOfMonth = `${day}-01 00:00:00`;
+      const endOfMonth = new Date(`${day}-01`);
+      endOfMonth.setMonth(endOfMonth.getMonth() + 1);
+      endOfMonth.setDate(0); // Last day of the month
+
+      const formattedEndOfMonth = `${
+        endOfMonth.toISOString().split("T")[0]
+      } 23:59:59`;
+
+      const events = await CalendarEvent.findAll({
+        where: {
+          projectId,
+          eventDate: {
+            [Op.between]: [startOfMonth, formattedEndOfMonth],
+          },
+        },
+      });
+
+      return res.status(200).json(events);
+    } else {
+      return res
+        .status(400)
+        .json({ error: "Invalid date format. Use YYYY-MM-DD or YYYY-MM." });
+    }
+  } catch (error) {
+    console.error("Error fetching calendar events:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+
+export const deleteCalendarEvent = asyncMiddleware(async (req, res) => {
+  try {
+    const { projectId, eventId } = req.params;
+
+    const event = await CalendarEvent.findOne({
+      where: { id: eventId, projectId },
+    });
+
+    if (!event) {
+      return res.status(404).json({ error: "Event not found" });
+    }
+
+    await event.destroy();
+
+    return res.status(200).json({ message: "Event deleted successfully" });
+  } catch (error) {
+    console.error("Error deleting calendar event:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});

@@ -95,7 +95,7 @@ export const getProjects = asyncMiddleware(async (req, res) => {
       include: {
         model: User,
         as: "leadUser", // Fetch the lead details
-        attributes: ["id", "name", "email"], // Only select necessary fields
+        attributes: ["id", "name", "email", "avatar"], // Only select necessary fields
       },
     });
     const assignedProjects = await UserProject.findAll({
@@ -164,7 +164,7 @@ export const getUsers = asyncMiddleware(async (req, res) => {
         {
           model: User,
           as: "user", // Fetch the lead details
-          attributes: ["id", "name", "email"], // Only select necessary fields
+          attributes: ["id", "name", "email", "avatar"], // Only select necessary fields
         },
         {
           model: Role,
@@ -227,7 +227,7 @@ export const getActivityLogs = asyncMiddleware(async (req, res) => {
         {
           model: User,
           as: "user", // Fetch the lead details
-          attributes: ["id", "name", "email"], // Only select necessary fields
+          attributes: ["id", "name", "email", "avatar"], // Only select necessary fields
         },
       ],
       order: [["createdAt", "DESC"]],

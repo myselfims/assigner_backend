@@ -31,6 +31,14 @@ export const Message = sequelize.define("Message", {
       key: "id",
     },
   },
+  workspaceId : {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    references: {
+      model: "Workspaces",
+      key: "id",
+    },
+  },
   content: {
     type: DataTypes.TEXT,
     allowNull: false,

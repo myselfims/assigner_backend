@@ -10,6 +10,7 @@ import { createActivityLog } from "../services/activityLogService.js";
 import ActivityLog from "../db/activityLog.js";
 import Workspace from "../db/workspace.js";
 import { Comment } from "../db/commectAndOtp.js";
+import { CalendarEvent } from "../db/calendarEvent.js";
 
 let schema = Joi.object({
   sprintId: Joi.number(),
@@ -18,7 +19,8 @@ let schema = Joi.object({
   description: Joi.string().optional(),
   deadline: Joi.date().required(),
   assignedToId: Joi.number().required(),
-  rank : Joi.number(),
+  rank: Joi.number(),
+  status: Joi.number(),
 });
 
 export const getAllTasks = asyncMiddleware(async (req, res) => {
@@ -41,8 +43,15 @@ export const createTask = asyncMiddleware(async (req, res) => {
     let { error } = schema.validate(req.body);
     if (error) return res.status(400).send(error.details[0].message);
 
-    const { projectId, sprintId, title, description, deadline, assignedToId } =
-      req.body;
+    const {
+      projectId,
+      sprintId,
+      title,
+      description,
+      deadline,
+      assignedToId,
+      status,
+    } = req.body;
 
     // Get the count of existing tasks in the project (for zero-based indexing)
     const taskCount = (await Task.count({ where: { projectId } })) + 1;
@@ -57,18 +66,55 @@ export const createTask = asyncMiddleware(async (req, res) => {
       assignedById: req.user.id,
       assignedToId,
       index: taskCount, // Ensures indexing starts from 0
+      status,
     });
+
+    if (deadline) {
+      const eventTitle = `Task Deadline: ${task.title}`;
+      const eventDescription = `You have a task '${task.title}' assigned with a deadline of ${task.deadline}. Make sure to complete it on time.`;
+      const event = CalendarEvent.create({
+        title: eventTitle,
+        description: eventDescription,
+        userId: task.assignedToId,
+        createdBy: req.user.id,
+        eventDate: task.deadline,
+        entityId: task.id,
+        entityType: "task",
+        type: "deadline",
+        projectId,
+      });
+    }
 
     // Fetch user details for email notification
     let creater = await User.findByPk(req.user.id);
     let user = await User.findByPk(assignedToId);
-    // userId, title, message, type = "info", priority = 3, redirectUrl = null, io
-    createNotification(
-      user?.id,
-      "newTaskAssigned",
-      { taskName: task.title, assignedBy: creater.name },
-      req.io
-    );
+    if (assignedToId !== req.user.id) {
+      if (user) {
+        createNotification(
+          user.id,
+          "newTaskAssigned",
+          { taskName: task.title, assignedBy: creater?.name || "Someone" },
+          req.io
+        );
+
+        // Generate email content
+        const emailContent = generateEmailContent("assignedTaskTemplate", {
+          userName: user.name,
+          projectName: "null",
+          taskName: task.title,
+          dueDate: task.deadline,
+          assignedBy: creater.name,
+          taskLink: "http://google.com/",
+        });
+
+        // Send email notification
+        sendEmail(user.email, emailContent.subject, emailContent.body).then(
+          () => {
+            console.log("Mail sent");
+          }
+        );
+      }
+    }
 
     let log = createActivityLog(
       "taskCreated",
@@ -79,27 +125,16 @@ export const createTask = asyncMiddleware(async (req, res) => {
         userId: req.user.id,
         projectId: project.id,
         workspaceId: project.workspaceId,
-        entityId : task.id
+        entityId: task.id,
       },
       req.io
     );
-
-    // Generate email content
-    const emailContent = generateEmailContent("assignedTaskTemplate", {
-      userName: user.name,
-      projectName: "null",
-      taskName: task.title,
-      dueDate: task.deadline,
-      assignedBy: creater.name,
-      taskLink: "http://google.com/",
+    res.status(201).json({
+      ...task.toJSON(),
+      assignedTo: user
+        ? { id: user.id, avatar: user.avatar, name: user.name }
+        : null,
     });
-
-    // Send email notification
-    sendEmail(user.email, emailContent.subject, emailContent.body).then(() => {
-      console.log("Mail sent");
-    });
-
-    res.status(201).json(task);
   } catch (error) {
     console.error("Error creating task:", error);
     res.status(500).json({ error: "Failed to create task" });
@@ -141,8 +176,8 @@ export const update = asyncMiddleware(async (req, res) => {
     if (task[key]) {
       task[key] = req.body[key];
     } else {
-      console.log("task[key]",key)
-      continue
+      console.log("task[key]", key);
+      continue;
     }
   }
 
@@ -151,14 +186,16 @@ export const update = asyncMiddleware(async (req, res) => {
   // Fetch Project Owner and Lead
   const project = await Project.findByPk(task.projectId);
   const assignedById = task.assignedById;
+  const assignedToId = task.assignedToId; // Get the assigned user ID
   const projectOwner = project.createdBy; // Assuming ownerId field in Project model
   const projectLead = project.lead; // Assuming leadId field in Project model
+
   console.log("project is ", project);
 
-  // Send notifications
-  if (assignedById) {
+  // Send notification to the assignee if it's not a self-assigned task
+  if (assignedById !== assignedToId) {  
     createNotification(
-      assignedById,
+      assignedToId,
       "taskUpdated",
       {
         taskName: task.title,
@@ -170,7 +207,9 @@ export const update = asyncMiddleware(async (req, res) => {
       req.io
     );
   }
-  if (projectOwner) {
+
+  // Send notification to project owner if they are not the assigned user
+  if (projectOwner && projectOwner !== assignedToId) {
     createNotification(
       projectOwner,
       "taskUpdated",
@@ -185,7 +224,8 @@ export const update = asyncMiddleware(async (req, res) => {
     );
   }
 
-  if (projectLead) {
+  // Send notification to project lead if they are not the assigned user
+  if (projectLead && projectLead !== assignedToId) {
     createNotification(
       projectLead,
       "taskUpdated",
@@ -204,26 +244,25 @@ export const update = asyncMiddleware(async (req, res) => {
 });
 
 
-export const getActivityLogs = asyncMiddleware( async (req, res)=>{
-  try{
-    const {taskId} = req.params;
+export const getActivityLogs = asyncMiddleware(async (req, res) => {
+  try {
+    const { taskId } = req.params;
     const logs = await ActivityLog.findAll({
-      where : { entityId : taskId, entityType : 'task' },
+      where: { entityId: taskId, entityType: "task" },
       include: [
         {
           model: User,
           as: "user", // Fetch the lead details
           attributes: ["id", "name", "email"], // Only select necessary fields
-        }],
-        order: [["createdAt", "DESC"]] 
-
-    })
-    res.status(200).json(logs)
-
-  }catch(error){
-    console.log(error)
+        },
+      ],
+      order: [["createdAt", "DESC"]],
+    });
+    res.status(200).json(logs);
+  } catch (error) {
+    console.log(error);
   }
-})
+});
 
 export const createComment = asyncMiddleware(async (req, res, next) => {
   try {
@@ -235,11 +274,11 @@ export const createComment = asyncMiddleware(async (req, res, next) => {
     }
 
     const task = await Task.findOne({
-      where : {id : taskId}
-    })
+      where: { id: taskId },
+    });
     const project = await Project.findOne({
-      where : {id : task.projectId}
-    })
+      where: { id: task.projectId },
+    });
 
     const extractMentionedUsers = (text) => {
       const mentionRegex = /@\[(.*?)\]\((\d+)\)/g;
@@ -253,7 +292,7 @@ export const createComment = asyncMiddleware(async (req, res, next) => {
 
     const mentionedUserIds = extractMentionedUsers(comment);
 
-    console.log("mentionedUserIds", mentionedUserIds)
+    console.log("mentionedUserIds", mentionedUserIds);
 
     const commentObject = await Comment.create({
       comment,
@@ -263,8 +302,18 @@ export const createComment = asyncMiddleware(async (req, res, next) => {
     });
 
     mentionedUserIds.forEach(async (mention) => {
-      createNotification(mention.userId, "mentionInComment", {userName : req.user.name, taskId, projectId : task.projectId, workspaceId : project.workspaceId }, req.io) 
-    })
+      createNotification(
+        mention.userId,
+        "mentionInComment",
+        {
+          userName: req.user.name,
+          taskId,
+          projectId: task.projectId,
+          workspaceId: project.workspaceId,
+        },
+        req.io
+      );
+    });
 
     req.io.to(`task-${taskId}`).emit("comment", {
       id: commentObject.id,
@@ -281,22 +330,20 @@ export const createComment = asyncMiddleware(async (req, res, next) => {
   }
 });
 
-
-
-export const getComments =  asyncMiddleware(async (req, res)=>{
-  try{
-    const {taskId} = req.params;
+export const getComments = asyncMiddleware(async (req, res) => {
+  try {
+    const { taskId } = req.params;
     const comments = await Comment.findAll({
-      where : {parentId : taskId, parentType : 'task'},
-      include : {
-        model : User,
-        as : 'user'
-      }
-    })
+      where: { parentId: taskId, parentType: "task" },
+      include: {
+        model: User,
+        as: "user",
+      },
+    });
 
-    res.status(200).json(comments)
-  }catch (error) {
+    res.status(200).json(comments);
+  } catch (error) {
     console.error("Comment fetch failed:", error);
     res.status(500).json({ message: "Internal server error" });
   }
-})
+});
