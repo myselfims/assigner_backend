@@ -209,6 +209,9 @@ Request.belongsTo(User, { foreignKey: "requesterId", as: "requester" });
 Request.belongsTo(User, { foreignKey: "targetUserId", as: "target" });
 
 
+// Message Relationship for replyTo
+Message.belongsTo(Message, { as: "repliedMessage", foreignKey: "replyTo" }); // Each message belongs to another message
+Message.hasMany(Message, { as: "Replies", foreignKey: "replyTo" }); 
 
 // Use migrations for schema changes instead of sync({ alter: true })
 async function migrate() {
@@ -222,4 +225,4 @@ async function migrate() {
   }
 }
 
-// migrate();
+migrate();

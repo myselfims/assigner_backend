@@ -4,7 +4,7 @@ import { asyncMiddleware } from "../middlewares/async.js";
 import Joi from "joi";
 import { transporter, sendEmail } from "../smtp.js";
 import { generateEmailContent } from "../config/emailTemplates.js";
-import { createNotification } from "../services/notificationService.js";
+import { createNotifications } from "../services/notificationService.js";
 import { Project } from "../db/project.js";
 import { createActivityLog } from "../services/activityLogService.js";
 import ActivityLog from "../db/activityLog.js";
@@ -90,7 +90,7 @@ export const createTask = asyncMiddleware(async (req, res) => {
     let user = await User.findByPk(assignedToId);
     if (assignedToId !== req.user.id) {
       if (user) {
-        createNotification(
+        createNotifications(
           user.id,
           "newTaskAssigned",
           { taskName: task.title, assignedBy: creater?.name || "Someone" },
@@ -194,7 +194,7 @@ export const update = asyncMiddleware(async (req, res) => {
 
   // Send notification to the assignee if it's not a self-assigned task
   if (assignedById !== assignedToId) {  
-    createNotification(
+    createNotifications(
       assignedToId,
       "taskUpdated",
       {
@@ -210,7 +210,7 @@ export const update = asyncMiddleware(async (req, res) => {
 
   // Send notification to project owner if they are not the assigned user
   if (projectOwner && projectOwner !== assignedToId) {
-    createNotification(
+    createNotifications(
       projectOwner,
       "taskUpdated",
       {
@@ -226,7 +226,7 @@ export const update = asyncMiddleware(async (req, res) => {
 
   // Send notification to project lead if they are not the assigned user
   if (projectLead && projectLead !== assignedToId) {
-    createNotification(
+    createNotifications(
       projectLead,
       "taskUpdated",
       {
@@ -302,7 +302,7 @@ export const createComment = asyncMiddleware(async (req, res, next) => {
     });
 
     mentionedUserIds.forEach(async (mention) => {
-      createNotification(
+      createNotifications(
         mention.userId,
         "mentionInComment",
         {

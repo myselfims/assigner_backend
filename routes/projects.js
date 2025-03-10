@@ -1,5 +1,5 @@
 import express from "express";
-import { addProject, getProjects, getStatuses, getTeamMembers, updateMember, getSingleProject, getMemberRole, removeMember, updateStatus, createStatus, getActivityLogs, createCalendarEvent, getCalendarEvents, deleteCalendarEvent } from "../controllers/projects.js";
+import { addProject, getProjects, getStatuses, getTeamMembers, updateMember, getSingleProject, getMemberRole, removeMember, updateStatus, createStatus, getActivityLogs, createCalendarEvent, getCalendarEvents, deleteCalendarEvent, updatedProject, deleteProject } from "../controllers/projects.js";
 import auth from "../middlewares/auth.js";
 
 const router = express.Router()
@@ -8,6 +8,7 @@ router
 .post('/', auth() ,addProject)
 .get('/', auth(), getProjects)
 .get('/:projectId', auth(), getSingleProject)
+.patch('/:projectId', auth(), updatedProject)
 .get('/statuses/:projectId', auth(), getStatuses)
 .get('/:projectId/activity-logs', auth(), getActivityLogs)
 .patch('/statuses/:statusId', auth(), updateStatus)
@@ -18,7 +19,8 @@ router
 .delete('/team/:projectId/:userId', auth(), removeMember)
 .post('/:projectId/calendar', auth(), createCalendarEvent)
 .get('/:projectId/calendar/:day', auth(), getCalendarEvents)
-.delete('/:projectId/calendar/:eventId', auth(), deleteCalendarEvent);
+.delete('/:projectId/calendar/:eventId', auth(), deleteCalendarEvent)
+.delete('/:projectId/', auth(), deleteProject)
 
 
 

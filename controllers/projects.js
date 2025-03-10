@@ -10,11 +10,12 @@ import sequelize from "../db/db.js";
 import { Role } from "../db/roleAndDesignation.js";
 import { generateEmailContent } from "../config/emailTemplates.js";
 import { sendEmail } from "../smtp.js";
-import { createNotification } from "../services/notificationService.js";
+import { createNotifications } from "../services/notificationService.js";
 import { createActivityLog } from "../services/activityLogService.js";
 import ActivityLog from "../db/activityLog.js";
 import { CalendarEvent } from "../db/calendarEvent.js";
 import { Op } from "sequelize";
+import { UserWorkspace } from "../db/userWorkspace.js";
 
 export const addProject = asyncMiddleware(async (req, res) => {
   const schema = Joi.object({
@@ -58,7 +59,7 @@ export const addProject = asyncMiddleware(async (req, res) => {
       projectId: project.id,
       roleId: 2,
     });
-    createNotification(
+    createNotifications(
       body.lead,
       "projectLeadAssigned",
       {
@@ -400,7 +401,7 @@ export const getProjects = asyncMiddleware(async (req, res) => {
     const userId = req.user.id;
 
     const createdProjects = await Project.findAll({
-      where: { createdBy: userId },
+      where: { createdBy: userId, isDeleted : false },
       include: {
         model: User,
         as: "leadUser", // Fetch the lead details
@@ -412,6 +413,7 @@ export const getProjects = asyncMiddleware(async (req, res) => {
       include: {
         model: Project,
         as: "project",
+        where : {isDeleted : false}
       },
     });
 
@@ -469,6 +471,13 @@ export const getSingleProject = asyncMiddleware(async (req, res) => {
     // Check if the user is the creator of the project
     const createdProject = await Project.findOne({
       where: { id: projectId, createdBy: userId },
+      include : [
+        {
+          model : User,
+          as : 'leadUser',
+          attributes : ['id', 'name', 'avatar']
+        }
+      ]
     });
 
     // Check if the user is assigned to the project
@@ -502,6 +511,45 @@ export const getSingleProject = asyncMiddleware(async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: err.message });
+  }
+});
+
+
+export const updatedProject = asyncMiddleware(async (req, res) => {
+  try {
+    const { projectId } = req.params;
+    const project = await Project.findOne({ where: { id: projectId } });
+
+    if (!project) {
+      return res.status(404).json({ message: "Project not found" });
+    }
+
+    Object.keys(req.body).forEach((key) => {
+      if (project[key] !== undefined) {
+        project[key] = req.body[key];
+      }
+    });
+
+    await project.save();
+
+    createActivityLog(
+      "projectUpdated",
+      {
+        userId: req.user.id,
+        workspaceId: project.workspaceId,
+        projectId: project.id,
+        projectName: project.name,
+        editorName: req.user.name,
+        entityId: project.id,
+        entityType: "project",
+      },
+      req.io
+    );
+
+    res.status(200).json(project);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Internal server error" });
   }
 });
 
@@ -649,5 +697,59 @@ export const deleteCalendarEvent = asyncMiddleware(async (req, res) => {
   } catch (error) {
     console.error("Error deleting calendar event:", error);
     res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+
+export const deleteProject = asyncMiddleware(async (req, res) => {
+  try {
+    const { projectId } = req.params;
+    const project = await Project.findOne({ where: { id: projectId } });
+    if (!project) {
+      return res.status(404).json({ error: "Project not found" });
+    }
+
+    // Soft delete the project
+    await project.update({ isDeleted: true });
+
+    // Fetch admin and owner roles
+    const adminRole = await Role.findOne({ where: { name: "admin" } });
+    const ownerRole = await Role.findOne({ where: { name: "owner" } });
+
+    // Get all workspace admins and owners
+    const workspaceAdminsAndOwners = await UserWorkspace.findAll({
+      where: {
+        workspaceId: project.workspaceId,
+        roleId: { [Op.in]: [adminRole.id, ownerRole.id] },
+      },
+    });
+
+    // Get all project members
+    const projectMembers = await UserProject.findAll({
+      where: { projectId: project.id },
+    });
+
+    // Map to extract userIds
+    const workspaceUserIds = workspaceAdminsAndOwners.map((ws) => ws.userId);
+    const projectMemberUserIds = projectMembers.map((pm) => pm.userId);
+
+    // Combine arrays, remove duplicates, and filter out the deleting user
+    const allUserIds = [
+      ...new Set([...workspaceUserIds, ...projectMemberUserIds]),
+    ].filter((id) => id !== req.user.id);
+
+    // Now send notification to allUserIds
+    // (Assuming you have a notification key 'projectDeleted' and dynamicData to pass along)
+    await createNotifications(
+      allUserIds,
+      "projectDeleted",
+      { projectName: project.name, deletedBy : req.user.name },
+      req.io  // Assuming req.io holds your socket.io instance
+    );
+
+    res.status(204).json({ message: "Project deleted successfully" });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Server Error" });
   }
 });

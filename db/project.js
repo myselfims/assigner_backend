@@ -59,5 +59,10 @@ export const Project = sequelize.define("Project", {
       key: "id",
     },
   },
+  isDeleted : {
+    type : DataTypes.BOOLEAN,
+    allowNull : false,
+    defaultValue : false,
+  }
 });
 

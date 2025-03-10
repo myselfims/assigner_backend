@@ -14,6 +14,7 @@ import organization from "./routes/organization.js";
 import notifications from "./routes/notifications.js";
 import global from "./routes/global.js";
 import chat from "./routes/chat.js";
+import dashboard from "./routes/dashboard.js";
 import "./db/models.js"; // Ensure database models are initialized
 
 const app = express();
@@ -45,6 +46,7 @@ app.use("/api/otp", otp);
 app.use("/api/notifications", notifications);
 app.use("/api/global", global);
 app.use("/api/chat", chat);
+app.use("/api/dashboard", dashboard);
 
 const PORT = process.env.PORT || 3000;
 

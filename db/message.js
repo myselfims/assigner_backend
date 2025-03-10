@@ -58,7 +58,15 @@ export const Message = sequelize.define("Message", {
   isRead: {
     type: DataTypes.BOOLEAN,
     defaultValue: false,
-  },  
+  }, 
+  replyTo : {
+    type : DataTypes.INTEGER,
+    allowNull: true,
+    references: {
+      model: "Messages",
+      key: "id",
+    },
+  },
   createdAt: {
     type: DataTypes.DATE,
     defaultValue: DataTypes.NOW,

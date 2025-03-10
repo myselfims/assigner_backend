@@ -40,6 +40,14 @@ const notificationConfig = {
     redirectUrl: "/project/{{projectId}}/action-items",
   },
 
+  projectDeleted: {
+    title: "Project Deleted",
+    message: "The project {{projectName}} has been deleted by {{deletedBy}}.",
+    type: "danger",
+    priority: 1,
+    redirectUrl: "/dashboard/projects",
+  },  
+
   taskCompleted: {
     title: "Task Completed",
     message: "A task assigned to you has been marked as completed.",

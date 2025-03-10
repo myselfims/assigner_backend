@@ -6,7 +6,7 @@ import { Request } from "../db/request.js";
 import { User } from "../db/user.js";
 import Workspace from "../db/workspace.js";
 import { UserWorkspace } from "../db/userWorkspace.js";
-import { createNotification } from "../services/notificationService.js";
+import { createNotifications } from "../services/notificationService.js";
 
 
 export const getAccountTypes = asyncMiddleware(async (req, res) => {
@@ -131,7 +131,7 @@ export const updateRequest = asyncMiddleware(async (req, res) => {
       let existingOwner = await UserWorkspace.findOne({where : {workspaceId : request.workspaceId, roleId : ownerRole.id }})
       existingOwner.update({userId : request.targetUserId})
       console.log(existingOwner);
-      createNotification(request.requesterId, 'transferWorkspaceAccepted', {name : req.user.name, workspaceName : workspace.name }, req.io)
+      createNotifications(request.requesterId, 'transferWorkspaceAccepted', {name : req.user.name, workspaceName : workspace.name }, req.io)
 
       req.io.to(`socket-${request.targetUserId}`).emit('workspace:ownership', {role : existingOwner, workspace})
       req.io.to(`socket-${request.requesterId}`).emit('workspace:ownership', {role : {}, workspace : {}})

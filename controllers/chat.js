@@ -11,7 +11,8 @@ export const getRoomId = (user1, user2) => {
 
 export const sendMessage = asyncMiddleware(async (req, res) => {
   try {
-    const { type, projectId, receiverId, content, workspaceId } = req.body;
+    const { type, projectId, receiverId, content, workspaceId, replyTo } =
+      req.body;
     const senderId = req.user.id;
 
     if (!content)
@@ -29,6 +30,7 @@ export const sendMessage = asyncMiddleware(async (req, res) => {
       workspaceId,
       content,
       type,
+      replyTo,
     });
 
     newMessage = await Message.findByPk(newMessage.id, {
@@ -37,6 +39,15 @@ export const sendMessage = asyncMiddleware(async (req, res) => {
           model: User,
           as: "sender",
           attributes: ["id", "name", "avatar"],
+        },
+        {
+          model: Message,
+          as: "repliedMessage",
+          include: {
+            model: User,
+            as: "sender",
+            attributes: ["id", "name", "email", "avatar"],
+          },
         },
       ],
     });
@@ -77,6 +88,15 @@ export const getProjectMessage = asyncMiddleware(async (req, res) => {
           as: "sender",
           attributes: ["id", "name", "email", "avatar"],
         },
+        {
+          model: Message,
+          as: "repliedMessage",
+          include: {
+            model: User,
+            as: "sender",
+            attributes: ["id", "name", "email", "avatar"],
+          },
+        },
       ],
       attributes: {
         include: [
@@ -102,6 +122,7 @@ export const getProjectMessage = asyncMiddleware(async (req, res) => {
       pinned: message.getDataValue("pinned"), // Directly use the calculated value
       createdAt: message.createdAt,
       updatedAt: message.updatedAt,
+      repliedMessage: message.repliedMessage || null,
     }));
 
     res.status(200).json(formattedMessages);
@@ -133,6 +154,15 @@ export const getUserMessage = asyncMiddleware(async (req, res) => {
           as: "sender",
           attributes: ["id", "name", "email", "avatar"],
         },
+        {
+          model: Message,
+          as: "repliedMessage",
+          include: {
+            model: User,
+            as: "sender",
+            attributes: ["id", "name", "email", "avatar"],
+          },
+        },
       ],
       attributes: {
         include: [
@@ -161,6 +191,7 @@ export const getUserMessage = asyncMiddleware(async (req, res) => {
       pinned: message.getDataValue("pinned"), // Directly use the calculated value
       createdAt: message.createdAt,
       updatedAt: message.updatedAt,
+      repliedMessage : message.repliedMessage || null
     }));
 
     res.status(200).json(formattedMessages);

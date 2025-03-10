@@ -11,7 +11,7 @@ function formatNotification(template, data) {
   return formattedMessage;
 }
 
-export async function createNotification(userId, notificationKey, dynamicData, io) {
+export async function createNotifications(userIds, notificationKey, dynamicData, io) {
   const template = NOTIFICATIONS[notificationKey];
 
   if (!template) {
@@ -21,20 +21,25 @@ export async function createNotification(userId, notificationKey, dynamicData, i
 
   const title = template.title;
   const message = formatNotification(template.message, dynamicData);
-  const redirectUrl = template.redirectUrl ? formatNotification(template.redirectUrl, dynamicData) : null
-  console.log('redirectUrl', redirectUrl)
+  const redirectUrl = template.redirectUrl ? formatNotification(template.redirectUrl, dynamicData) : null;
+  console.log('redirectUrl', redirectUrl);
 
-  const notification = await Notification.create({
-    userId,
-    title,
-    message,
-    type: template.type,
-    priority: template.priority,
-    redirectUrl: redirectUrl,
-  });
+  // Create notifications for each user in parallel
+  const notifications = await Promise.all(
+    userIds.map(async (userId) => {
+      const notification = await Notification.create({
+        userId,
+        title,
+        message,
+        type: template.type,
+        priority: template.priority,
+        redirectUrl,
+      });
+      // Emit real-time notification for the current user
+      sendNotification(io, userId, notification);
+      return notification;
+    })
+  );
 
-  // Emit real-time notification
-  sendNotification(io, userId, notification);
-
-  return notification;
+  return notifications;
 }

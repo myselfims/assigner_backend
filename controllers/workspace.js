@@ -10,7 +10,7 @@ import ActivityLog from "../db/activityLog.js";
 import { createActivityLog } from "../services/activityLogService.js";
 import bcrypt from "bcrypt";
 import { Request } from "../db/request.js";
-import { createNotification } from "../services/notificationService.js";
+import { createNotifications } from "../services/notificationService.js";
 
 export const createWorkspace = asyncMiddleware(async (req, res) => {
   // Validation schema
@@ -345,7 +345,7 @@ export const transferOwnership = asyncMiddleware(async (req, res) => {
       metadata: message,
     });
 
-    createNotification(user.id, 'transferWorkspaceOwnership', {workspaceName : workspace.name, requesterName : req.user.name}, req.io)
+    createNotifications(user.id, 'transferWorkspaceOwnership', {workspaceName : workspace.name, requesterName : req.user.name}, req.io)
 
     return res.status(201).json(request);
   } catch (error) {
